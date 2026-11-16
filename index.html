@@ -77,8 +77,15 @@ th,td{padding:7px 10px;border-bottom:1px solid #edf1f4;text-align:left;vertical-
 th{background:#eef3f6;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);position:sticky;top:0}
 td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 td.res{font-weight:650;color:var(--brand)}
-td.f{font-family:var(--mono);font-size:12px;color:#243b53}
-td.s{font-family:var(--mono);font-size:12px;color:#5a4a00}
+td.f{font-family:"Cambria Math","Times New Roman",Times,serif;font-size:15px;color:#243b53;white-space:nowrap}
+td.s{font-family:"Cambria Math","Times New Roman",Times,serif;font-size:15px;color:#5a4a00;white-space:nowrap}
+.fr{display:inline-block;vertical-align:middle;text-align:center;margin:0 2px}
+.fr>.nu{display:block;padding:0 3px;border-bottom:1px solid currentColor;line-height:1.3}
+.fr>.de{display:block;padding:0 3px;line-height:1.3}
+.rd{white-space:nowrap}.rd>.rb{display:inline-block;border-top:1px solid currentColor;padding:0 2px;vertical-align:middle}
+sub,sup{font-size:.7em;line-height:0}
+table.nomen td.nsym{font-size:16px;white-space:nowrap;width:1%}
+tr.nsec td{background:#e4eef2;font-weight:700;color:var(--brand);font-size:12.5px}
 tr:last-child td{border-bottom:0}
 tr.assump td:first-child{border-left:4px solid #e0c64c}
 .legendline{font-size:12px;color:var(--muted);margin:6px 0 0}
@@ -326,7 +333,7 @@ function bookCell(val, book, active){
 }
 function rowHTML(code,label,formula,subst,val,dec,unit,book,active,assump){
   return `<tr class="${assump?'assump':''}"><td>${code}</td><td>${label}</td>
-   <td class="f">${esc(formula)}</td><td class="s">${esc(subst)}</td>
+   <td class="f" data-t="${esc(mmText(formula))}">${mm(formula)}</td><td class="s" data-t="${esc(mmText(subst))}">${mm(subst)}</td>
    <td class="num res">${fmt(val,dec)} <span style="font-weight:400;color:var(--muted)">${unit}</span></td>
    ${bookCell(val,book,active)}</tr>`;
 }
@@ -339,62 +346,163 @@ function rangeBadge(v,[lo,hi,rec]){
   const ok = v>=lo-1e-9 && v<=hi+1e-9;
   return `<span class="badge ${ok?'ok':'warn'}">${ok?'dentro del rango':'fuera del rango'}</span>`;
 }
+/* ---------- Mini-lenguaje matemático -> HTML (fórmulas escritas como en un libro) ---------- */
+function mm(s){
+  s=String(s); let i=0, out="";
+  const grp=()=>{
+    if(s[i]!=="{") return "";
+    let depth=0; const st=i+1;
+    for(;i<s.length;i++){
+      if(s[i]==="{") depth++;
+      else if(s[i]==="}"){ depth--; if(depth===0){ const inner=s.slice(st,i); i++; return mm(inner); } }
+    }
+    return mm(s.slice(st));
+  };
+  while(i<s.length){
+    if(s.startsWith("frac{",i)){ i+=4; const a=grp(), b=grp(); out+=`<span class="fr"><span class="nu">${a}</span><span class="de">${b}</span></span>`; }
+    else if(s.startsWith("sqrt{",i)){ i+=4; out+=`<span class="rd">√<span class="rb">${grp()}</span></span>`; }
+    else if(s[i]==="_"||s[i]==="^"){
+      const tag=s[i]==="_"?"sub":"sup"; i++;
+      let inner; if(s[i]==="{") inner=grp(); else { inner=s[i]||""; i++; }
+      out+=`<${tag}>${inner}</${tag}>`;
+    }
+    else if(s[i]==="*"){ out+="×"; i++; }
+    else { const ch=s[i++]; out+= ch==="&"?"&amp;":ch==="<"?"&lt;":ch===">"?"&gt;":ch; }
+  }
+  return out;
+}
+function mmText(s){        // versión en texto plano (para «Copiar memoria como texto»)
+  s=String(s).replace(/_\{([^{}]*)\}/g,"_$1").replace(/\^\{([^{}]*)\}/g,"^$1");
+  for(let k=0;k<8;k++){
+    s=s.replace(/frac\{([^{}]*)\}\{([^{}]*)\}/g,"($1)/($2)").replace(/sqrt\{([^{}]*)\}/g,"√($1)");
+  }
+  return s.replace(/\*/g,"×");
+}
+
+/* ---------- Cuadro de nomenclatura (significados según Cap. 12 «Decantadores», R. Isla de Juana) ---------- */
+const NOMEN = [
+  ["Parámetros de partida (sec. 12.2 y 12.3)"],
+  ["Q_d","Caudal de diseño: caudal adoptado como base para el cálculo.","m³/h","Libro, L1"],
+  ["Q_{max}","Caudal máximo: caudal máximo que puede entrar al tratamiento.","m³/h","Libro, L2"],
+  ["v_a","Velocidad ascensional a caudal de diseño: velocidad media a la que asciende el agua por una superficie igual a la del decantador cuando el caudal tratado coincide con el de diseño. Primarios: rango 1.0 a 1.5 (recomendado 1.3). Secundarios: 0.5 a 1.0 (recomendado 0.8).","m³/m²·h","Libro, L3"],
+  ["t_r","Tiempo medio de residencia a caudal de diseño: tiempo medio que permanece el agua residual en el decantador cuando el caudal tratado coincide con el de diseño. Primarios: 2 a 4 (recomendado 2.5). Secundarios: 3 a 6 (recomendado 5).","h","Libro, L4"],
+  ["N","Número de líneas (decantadores en paralelo).","und","Libro, L5"],
+  ["d_v","Distancia desde el vertedero perimetral hasta la pared interna de la cuba. Cuando el canalillo es exterior al muro, vale cero.","m","Libro, L6"],
+  ["Resultados del cálculo (sec. 12.3 y 12.5)"],
+  ["Q_{dl}","Caudal de diseño por línea: caudal adoptado como base para el cálculo de cada línea.","m³/h","Libro, L7"],
+  ["Q_{ml}","Caudal máximo por línea: caudal máximo que puede entrar al tratamiento por una línea.","m³/h","Libro, L8"],
+  ["A","Superficie del decantador: superficie horizontal del decantador.","m²","Libro, L9"],
+  ["D","Diámetro interno del decantador.","m","Libro, L10"],
+  ["V_u","Volumen cilíndrico útil: volumen del decantador excluido el resguardo y el cono de fangos.","m³","Libro, L11"],
+  ["h_u","Profundidad cilíndrica útil: profundidad del decantador excluido el resguardo y el cono de fangos.","m","Libro, L12"],
+  ["v_{max}","Velocidad ascensional a caudal máximo: velocidad media a la que asciende el agua por una superficie igual a la de la balsa cuando el caudal tratado coincide con el máximo.","m³/m²·h","Libro, L13"],
+  ["t_{max}","Tiempo medio de residencia a caudal máximo: tiempo medio que permanece el agua residual en la balsa cuando el caudal tratado coincide con el máximo.","h","Libro, L14"],
+  ["L_v","Longitud del vertedero: longitud del vertedero perimetral de un decantador, por el que sale el agua tratada.","m","Libro, L15"],
+  ["C_v","Carga máxima sobre vertedero: metros cúbicos de agua tratada que salen por cada metro lineal de vertedero en una hora, a caudal máximo.","m³/m·h","Libro, L16"],
+  ["Producción de fangos primarios (sec. 12.7 y 12.8)"],
+  ["η_{SS}","Eliminación de sólidos en suspensión: tanto por ciento de reducción de los sólidos en suspensión en el decantador primario. Rango 50 a 70 (recomendado 66).","%","Libro, L17"],
+  ["η_{DBO}","Eliminación de DBO: tanto por ciento de reducción de la DBO en el decantador primario. Rango 20 a 40 (recomendado 33).","%","Libro, L18"],
+  ["SS_e","Concentración de sólidos en suspensión en la entrada de decantación.","mg/l","Libro, L19"],
+  ["DBO_e","Concentración de DBO en la entrada de decantación.","mg/l","Libro, L20"],
+  ["C_f","Concentración del fango decantado: concentración alcanzada por los SS decantados en la salida del decantador primario (constituye el fango primario). Rango 10 a 30 (recomendado 15).","kg/m³","Libro, L21"],
+  ["P_f","Producción de fangos primarios: caudal másico de fangos primarios, kilos de sólidos en suspensión contenidos en los fangos producidos en 24 horas.","kg/d","Libro, L22"],
+  ["P_{fh}","Producción media de fangos primarios: caudal másico medio de fangos primarios.","kg/h","Libro, L23"],
+  ["Q_f","Caudal medio de fangos primarios: metros cúbicos de fangos producidos en una hora con la concentración indicada.","m³/h","Libro, L24"],
+  ["SS_s","Concentración de sólidos en suspensión a la salida de decantación (agua decantada efluente del primario).","mg/l","Libro, L25"],
+  ["DBO_s","Concentración de DBO a la salida de decantación (agua decantada efluente del primario).","mg/l","Libro, L26"],
+  ["Dimensiones de equipos (sec. 12.10)"],
+  ["a_c","Anchura = altura de la compuerta de reparto a decantadores (cierre por cuatro aristas).","m","Libro, 12.10"],
+  ["a_f","Anchura = altura de la compuerta de entrada a foso de fangos en exceso (decantadores secundarios).","m","Libro, 12.10"],
+  ["p","Pendiente del fondo del decantador (8 % en el ejemplo del libro).","%","Libro, 12.10"],
+  ["r_g","Resguardo: el libro obtiene la profundidad cilíndrica sumando 0.3 m a la profundidad cilíndrica útil.","m","Libro, 12.10"],
+  ["h_c","Profundidad cilíndrica: profundidad cilíndrica útil más el resguardo.","m","Libro, 12.10"],
+  ["h_{co}","Altura del cono de fondo: (D / 2) × (pendiente / 100).","m","Libro, 12.10"],
+  ["H","Profundidad total del decantador: profundidad cilíndrica + (D / 2) × (pendiente / 100).","m","Libro, 12.10"],
+  ["d_{ent}","Diámetro del cilindro de entrada: 0.15 veces el diámetro del decantador.","m","Libro, 12.10"],
+  ["Q_b","Caudal unitario por bomba de fangos: caudal de fangos primarios × 2 / número de decantadores.","m³/h","Libro, 12.10"],
+  ["N_b","Número de bombas de fangos (2 por línea).","und","Libro, 12.10"],
+  ["w_p","Anchura del puente (1.00 m en el libro).","m","Libro, 12.10"],
+  ["π","Constante pi; el libro usa 3.1416.","—","Libro, L10 y L15"],
+  ["Dimensiones y cotas del modelo 3D (supuestos del grupo, no vienen del libro)"],
+  ["R_i, R_e","Radio interno y radio externo del decantador (R_e = R_i + espesor del muro).","m","Modelo"],
+  ["D_e","Diámetro externo del decantador.","m","Modelo"],
+  ["R_v","Radio del vertedero: radio interno menos la distancia vertedero-pared.","m","Modelo"],
+  ["e_m, e_l","Espesor del muro y espesor de la losa.","m","Supuesto"],
+  ["h_{cn}","Profundidad del canal de recogida.","m","Supuesto"],
+  ["h_t","Profundidad de la tolva.","m","Supuesto"],
+  ["v_t","Velocidad en tuberías.","m/s","Supuesto"],
+  ["d_f","Diámetro de la tubería de fangos.","m","Supuesto"],
+  ["d_a, d_s","Diámetro de la tubería afluente y de la tubería de salida (comerciales, múltiplos de 0.05 m por exceso).","m","Modelo"],
+  ["z_a, z_m, z_c","Cotas del nivel de agua, del fondo en el muro y del fondo en el centro, medidas desde la coronación del muro (±0.00), positivas hacia arriba.","m","Modelo"],
+  ["z_{cn}","Cota del fondo del canal.","m","Modelo"],
+  ["z_{af}, z_f","Cotas del eje de la tubería afluente y del eje de la tubería de fangos.","m","Modelo"],
+  ["L_p","Longitud del puente radial (igual al radio externo).","m","Modelo"]
+];
+function nomenHTML(){
+  const rows=NOMEN.map(r=>r.length===1
+    ? `<tr class="nsec"><td colspan="4">${esc(r[0])}</td></tr>`
+    : `<tr><td class="f nsym">${mm(r[0])}</td><td>${esc(r[1])}</td><td class="num">${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`).join("");
+  return `<div class="tablewrap"><table class="nomen"><thead><tr><th>Símbolo</th><th>Significado</th><th>Unidad</th><th>Fuente</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
 function memoHTML(C){
   const n = x => fmt(x,2), p = S;
   const act = sameAsPreset(), bk = BOOK[S.mode];
   const R = (c,l,f,s,v,d,u,b)=>rowHTML(c,l,f,s,v,d,u,bk[b],act,false);
+  // Las fórmulas se escriben con símbolos (mini-lenguaje: frac{a}{b}, sqrt{a}, X_{sub}, X^{sup}) y se muestran como en un libro.
   const prim = [
-    R("L7","Caudal de diseño por línea","L1 / L5",`${n(p.L1)} / ${p.L5}`,C.L7,2,"m³/h","L7"),
-    R("L8","Caudal máximo por línea","L2 / L5",`${n(p.L2)} / ${p.L5}`,C.L8,2,"m³/h","L8"),
-    R("L9","Superficie del decantador","L7 / L3",`${n(C.L7)} / ${p.L3}`,C.L9,2,"m²","L9"),
-    R("L10","Diámetro interno","(L9·4/3.1416)^0.5",`(${n(C.L9)}·4/3.1416)^0.5`,C.L10,2,"m","L10"),
-    R("L11","Volumen cilíndrico útil","L7 · L4",`${n(C.L7)} · ${p.L4}`,C.L11,2,"m³","L11"),
-    R("L12","Profundidad cilíndrica útil","L11 / L9",`${n(C.L11)} / ${n(C.L9)}`,C.L12,2,"m","L12"),
-    R("L13","Veloc. ascensional a caudal máximo","L8 / L9",`${n(C.L8)} / ${n(C.L9)}`,C.L13,2,"m³/m²·h","L13"),
-    R("L14","T. de residencia a caudal máximo","L11 / L8",`${n(C.L11)} / ${n(C.L8)}`,C.L14,2,"h","L14"),
-    R("L15","Longitud de vertedero","2·3.1416·(L10/2 − L6)",`2·3.1416·(${n(C.L10)}/2 − ${p.L6})`,C.L15,2,"m","L15"),
-    R("L16","Carga máxima sobre vertedero","L8 / L15",`${n(C.L8)} / ${n(C.L15)}`,C.L16,2,"m³/m·h","L16")
+    R("L7","Caudal de diseño por línea","Q_{dl} = frac{Q_d}{N}",`Q_{dl} = frac{${n(p.L1)}}{${p.L5}}`,C.L7,2,"m³/h","L7"),
+    R("L8","Caudal máximo por línea","Q_{ml} = frac{Q_{max}}{N}",`Q_{ml} = frac{${n(p.L2)}}{${p.L5}}`,C.L8,2,"m³/h","L8"),
+    R("L9","Superficie del decantador","A = frac{Q_{dl}}{v_a}",`A = frac{${n(C.L7)}}{${p.L3}}`,C.L9,2,"m²","L9"),
+    R("L10","Diámetro interno","D = sqrt{frac{4 * A}{π}}",`D = sqrt{frac{4 * ${n(C.L9)}}{3.1416}}`,C.L10,2,"m","L10"),
+    R("L11","Volumen cilíndrico útil","V_u = Q_{dl} * t_r",`V_u = ${n(C.L7)} * ${p.L4}`,C.L11,2,"m³","L11"),
+    R("L12","Profundidad cilíndrica útil","h_u = frac{V_u}{A}",`h_u = frac{${n(C.L11)}}{${n(C.L9)}}`,C.L12,2,"m","L12"),
+    R("L13","Veloc. ascensional a caudal máximo","v_{max} = frac{Q_{ml}}{A}",`v_{max} = frac{${n(C.L8)}}{${n(C.L9)}}`,C.L13,2,"m³/m²·h","L13"),
+    R("L14","T. de residencia a caudal máximo","t_{max} = frac{V_u}{Q_{ml}}",`t_{max} = frac{${n(C.L11)}}{${n(C.L8)}}`,C.L14,2,"h","L14"),
+    R("L15","Longitud de vertedero","L_v = 2 * π * (frac{D}{2} − d_v)",`L_v = 2 * 3.1416 * (frac{${n(C.L10)}}{2} − ${p.L6})`,C.L15,2,"m","L15"),
+    R("L16","Carga máxima sobre vertedero","C_v = frac{Q_{ml}}{L_v}",`C_v = frac{${n(C.L8)}}{${n(C.L15)}}`,C.L16,2,"m³/m·h","L16")
   ];
   const fa = sameFangos();
   const F = (c,l,f,s,v,u)=>rowHTML(c,l,f,s,v,2,u,BOOK_F[c],fa,false);
   const fang = [
-    F("L22","Producción de fangos primarios","((L1·L19·(L17/100))/1000)·24",`((${p.L1}·${p.L19}·(${p.L17}/100))/1000)·24`,C.L22,"kg/d"),
-    F("L23","Producción media de fangos","(L1·L19·(L17/100))/1000",`(${p.L1}·${p.L19}·(${p.L17}/100))/1000`,C.L23,"kg/h"),
-    F("L24","Caudal medio de fangos","(L22/24)/L21",`(${n(C.L22)}/24)/${p.L21}`,C.L24,"m³/h"),
-    F("L25","SS en la salida de decantación","L19·(100 − L17)/100",`${p.L19}·(100 − ${p.L17})/100`,C.L25,"mg/l"),
-    F("L26","DBO en la salida de decantación","L20·(100 − L18)/100",`${p.L20}·(100 − ${p.L18})/100`,C.L26,"mg/l")
+    F("L22","Producción de fangos primarios","P_f = frac{Q_d * SS_e * frac{η_{SS}}{100}}{1000} * 24",`P_f = frac{${p.L1} * ${p.L19} * frac{${p.L17}}{100}}{1000} * 24`,C.L22,"kg/d"),
+    F("L23","Producción media de fangos","P_{fh} = frac{Q_d * SS_e * frac{η_{SS}}{100}}{1000}",`P_{fh} = frac{${p.L1} * ${p.L19} * frac{${p.L17}}{100}}{1000}`,C.L23,"kg/h"),
+    F("L24","Caudal medio de fangos","Q_f = frac{frac{P_f}{24}}{C_f}",`Q_f = frac{frac{${n(C.L22)}}{24}}{${p.L21}}`,C.L24,"m³/h"),
+    F("L25","SS en la salida de decantación","SS_s = frac{SS_e * (100 − η_{SS})}{100}",`SS_s = frac{${p.L19} * (100 − ${p.L17})}{100}`,C.L25,"mg/l"),
+    F("L26","DBO en la salida de decantación","DBO_s = frac{DBO_e * (100 − η_{DBO})}{100}",`DBO_s = frac{${p.L20} * (100 − ${p.L18})}{100}`,C.L26,"mg/l")
   ];
   const E = (c,l,f,s,v,d,u,asm=false)=>rowHTML(c,l,f,s,v,d,u,undefined,false,asm);
   const equip = [
     (S.mode==="secundario"
-      ? E("Equipo","Anchura = altura de compuerta","(((L1·2)/L5)/(1·3600))^0.5",`(((${p.L1}·2)/${p.L5})/(1·3600))^0.5`,C.wc,3,"m")
-      : E("Equipo","Anchura = altura de compuerta","((L1/L5)/(1·3600))^0.5",`((${p.L1}/${p.L5})/(1·3600))^0.5`,C.wc,3,"m")),
-    E("Equipo","Profundidad cilíndrica","L12 + resguardo",`${n(C.L12)} + ${p.resg}`,C.hc,3,"m"),
-    E("Equipo","Altura del cono de fondo","(L10/2)·(pendiente/100)",`(${n(C.L10)}/2)·(${p.pend}/100)`,C.hcono,3,"m"),
-    E("Equipo","Profundidad total del decantador","prof. cilíndrica + (L10/2)·(pend./100)",`${fmt(C.hc,3)} + ${fmt(C.hcono,3)}`,C.Ht,3,"m"),
-    E("Equipo","Diámetro del cilindro de entrada","L10 · 0.15",`${n(C.L10)} · 0.15`,C.dent,3,"m"),
-    E("Equipo","Caudal unitario por bomba de fangos","L24 · 2 / L5",`${n(C.L24)} · 2 / ${p.L5}`,C.qb,2,"m³/h"),
-    E("Equipo","Número de bombas de fangos","2 · L5",`2 · ${p.L5}`,C.nb,0,"und")
+      ? E("Equipo","Anchura = altura de compuerta","a_c = sqrt{frac{frac{Q_d * 2}{N}}{1 * 3600}}",`a_c = sqrt{frac{frac{${p.L1} * 2}{${p.L5}}}{1 * 3600}}`,C.wc,3,"m")
+      : E("Equipo","Anchura = altura de compuerta","a_c = sqrt{frac{frac{Q_d}{N}}{1 * 3600}}",`a_c = sqrt{frac{frac{${p.L1}}{${p.L5}}}{1 * 3600}}`,C.wc,3,"m")),
+    E("Equipo","Profundidad cilíndrica","h_c = h_u + r_g",`h_c = ${n(C.L12)} + ${p.resg}`,C.hc,3,"m"),
+    E("Equipo","Altura del cono de fondo","h_{co} = frac{D}{2} * frac{p}{100}",`h_{co} = frac{${n(C.L10)}}{2} * frac{${p.pend}}{100}`,C.hcono,3,"m"),
+    E("Equipo","Profundidad total del decantador","H = h_c + frac{D}{2} * frac{p}{100}",`H = ${fmt(C.hc,3)} + frac{${n(C.L10)}}{2} * frac{${p.pend}}{100}`,C.Ht,3,"m"),
+    E("Equipo","Diámetro del cilindro de entrada","d_{ent} = 0.15 * D",`d_{ent} = 0.15 * ${n(C.L10)}`,C.dent,3,"m"),
+    E("Equipo","Caudal unitario por bomba de fangos","Q_b = frac{Q_f * 2}{N}",`Q_b = frac{${n(C.L24)} * 2}{${p.L5}}`,C.qb,2,"m³/h"),
+    E("Equipo","Número de bombas de fangos","N_b = 2 * N",`N_b = 2 * ${p.L5}`,C.nb,0,"und")
   ];
   if(S.mode==="secundario"){
-    equip.push(E("Equipo","Compuerta de entrada a foso de fangos en exceso: anchura","((L1/L5)/(0.25·3600))^0.5",`((${p.L1}/${p.L5})/(0.25·3600))^0.5`,C.wfoso,3,"m"));
+    equip.push(E("Equipo","Compuerta de entrada a foso de fangos en exceso: anchura","a_f = sqrt{frac{frac{Q_d}{N}}{0.25 * 3600}}",`a_f = sqrt{frac{frac{${p.L1}}{${p.L5}}}{0.25 * 3600}}`,C.wfoso,3,"m"));
   }
-  equip.push(`<tr><td>Equipo</td><td>Tipo de puente</td><td class="f">${S.mode==="secundario"?"si L10 < 25: radial con rasquetas; si no: radial de succión":"según libro (primario)"}</td><td class="s">${S.mode==="secundario"?"L10 = "+fmt(C.L10,2)+(C.L10<25?" < 25":" ≥ 25"):"—"}</td><td class="res" style="font-weight:650;color:var(--brand)">${C.puente}</td><td class="num">—</td></tr>`);
+  equip.push(`<tr><td>Equipo</td><td>Tipo de puente</td><td class="f" data-t="${S.mode==="secundario"?"si D < 25 m: radial con rasquetas; si D ≥ 25 m: radial de succión":"según libro (primario)"}">${S.mode==="secundario"?"si D &lt; 25 m: radial con rasquetas;<br>si D ≥ 25 m: radial de succión":"según libro (primario)"}</td><td class="s">${S.mode==="secundario"?"D = "+fmt(C.L10,2)+" m"+(C.L10<25?" &lt; 25 m":" ≥ 25 m"):"—"}</td><td class="res" style="font-weight:650;color:var(--brand)">${C.puente}</td><td class="num">—</td></tr>`);
   const D = (l,f,s,v,u,asm)=>E("Dibujo",l,f,s,v,3,u,asm);
+  const rawA=Math.sqrt(4*(C.L7/3600)/(PI*p.vtub)), rawS=Math.sqrt(4*(C.L8/3600)/(PI*p.vtub));
   const dib = [
-    D("Radio interno","L10 / 2",`${n(C.L10)} / 2`,C.Rint,"m"),
-    D("Radio externo","Rint + espesor del muro",`${fmt(C.Rint,3)} + ${p.emuro}`,C.Rext,"m"),
-    D("Diámetro externo","2 · Rext",`2 · ${fmt(C.Rext,3)}`,C.Dext,"m"),
-    D("Radio del vertedero","Rint − L6",`${fmt(C.Rint,3)} − ${p.L6}`,C.Rvert,"m"),
-    D("Cota del nivel de agua","− resguardo",`− ${p.resg}`,C.zagua,"m"),
-    D("Cota del fondo en el muro","− prof. cilíndrica",`− ${fmt(C.hc,3)}`,C.zmuro,"m"),
-    D("Cota del fondo en el centro","− prof. total",`− ${fmt(C.Ht,3)}`,C.zcentro,"m"),
-    D("Cota del fondo del canal","nivel de agua − prof. canal",`${fmt(C.zagua,3)} − ${p.hcanal}`,C.zcanal,"m",true),
-    D("Ø tubería afluente (comercial)","múltiplo de 0.05 ≥ (4·(L7/3600)/(π·v))^0.5",`(4·${fmt(C.L7/3600,4)}/(π·${p.vtub}))^0.5 = ${fmt(Math.sqrt(4*(C.L7/3600)/(PI*p.vtub)),3)}`,C.dafl,"m",true),
-    D("Ø tubería de salida (comercial)","múltiplo de 0.05 ≥ (4·(L8/3600)/(π·v))^0.5",`(4·${fmt(C.L8/3600,4)}/(π·${p.vtub}))^0.5 = ${fmt(Math.sqrt(4*(C.L8/3600)/(PI*p.vtub)),3)}`,C.dsal,"m",true),
-    D("Cota del eje de la tubería afluente","−(Ht + e.losa + h.tolva + 0.3 + Ø afl/2)",`−(${fmt(C.Ht,3)} + ${p.elosa} + ${p.htolva} + 0.3 + ${fmt(C.dafl/2,3)})`,C.zafl,"m",true),
-    D("Cota del eje de la tubería de fangos","−(Ht + h.tolva − Ø fangos/2 − 0.05)",`−(${fmt(C.Ht,3)} + ${p.htolva} − ${fmt(p.dfan/2,3)} − 0.05)`,C.zfan,"m",true),
-    D("Longitud del puente radial","Rext",`${fmt(C.Rext,3)}`,C.Lpuente,"m")
+    D("Radio interno","R_i = frac{D}{2}",`R_i = frac{${n(C.L10)}}{2}`,C.Rint,"m"),
+    D("Radio externo","R_e = R_i + e_m",`R_e = ${fmt(C.Rint,3)} + ${p.emuro}`,C.Rext,"m"),
+    D("Diámetro externo","D_e = 2 * R_e",`D_e = 2 * ${fmt(C.Rext,3)}`,C.Dext,"m"),
+    D("Radio del vertedero","R_v = R_i − d_v",`R_v = ${fmt(C.Rint,3)} − ${p.L6}`,C.Rvert,"m"),
+    D("Cota del nivel de agua","z_a = − r_g",`z_a = − ${p.resg}`,C.zagua,"m"),
+    D("Cota del fondo en el muro","z_m = − h_c",`z_m = − ${fmt(C.hc,3)}`,C.zmuro,"m"),
+    D("Cota del fondo en el centro","z_c = − H",`z_c = − ${fmt(C.Ht,3)}`,C.zcentro,"m"),
+    D("Cota del fondo del canal","z_{cn} = z_a − h_{cn}",`z_{cn} = ${fmt(C.zagua,3)} − ${p.hcanal}`,C.zcanal,"m",true),
+    D("Ø tubería afluente (comercial: múltiplo de 0.05 m por exceso)","d_a = sqrt{frac{4 * frac{Q_{dl}}{3600}}{π * v_t}}",`d_a = sqrt{frac{4 * frac{${n(C.L7)}}{3600}}{3.1416 * ${p.vtub}}} = ${fmt(rawA,3)} → ${fmt(C.dafl,3)}`,C.dafl,"m",true),
+    D("Ø tubería de salida (comercial: múltiplo de 0.05 m por exceso)","d_s = sqrt{frac{4 * frac{Q_{ml}}{3600}}{π * v_t}}",`d_s = sqrt{frac{4 * frac{${n(C.L8)}}{3600}}{3.1416 * ${p.vtub}}} = ${fmt(rawS,3)} → ${fmt(C.dsal,3)}`,C.dsal,"m",true),
+    D("Cota del eje de la tubería afluente","z_{af} = −(H + e_l + h_t + 0.3 + frac{d_a}{2})",`z_{af} = −(${fmt(C.Ht,3)} + ${p.elosa} + ${p.htolva} + 0.3 + ${fmt(C.dafl/2,3)})`,C.zafl,"m",true),
+    D("Cota del eje de la tubería de fangos","z_f = −(H + h_t − frac{d_f}{2} − 0.05)",`z_f = −(${fmt(C.Ht,3)} + ${p.htolva} − ${fmt(p.dfan/2,3)} − 0.05)`,C.zfan,"m",true),
+    D("Longitud del puente radial","L_p = R_e",`L_p = ${fmt(C.Rext,3)}`,C.Lpuente,"m")
   ];
   const rb = (lbl,v,key)=>{
     const r = key==="L3"||key==="L4" ? RANGES[S.mode][key] : RANGES[key];
@@ -422,12 +530,14 @@ function memoHTML(C){
    <h3>5. Dimensiones de equipos (sección 12.10)</h3>
    <p class="note">Fórmulas de la lista de equipos aplicadas a los resultados de este decantador.</p>${tableHTML(equip)}
    <h3>6. Dimensiones y cotas para el modelo 3D</h3>
-   <p class="note">Cotas desde la coronación del muro (±0.00), positivas hacia arriba. Las filas con borde amarillo dependen de supuestos del grupo.</p>${tableHTML(dib)}`;
+   <p class="note">Cotas desde la coronación del muro (±0.00), positivas hacia arriba. Las filas con borde amarillo dependen de supuestos del grupo.</p>${tableHTML(dib)}
+   <h3>7. Cuadro de nomenclatura</h3>
+   <p class="note">Símbolos usados en las fórmulas y su significado, según el Cap. 12 «Decantadores» (R. Isla de Juana). Los últimos grupos corresponden al modelo 3D y no vienen del libro.</p>${nomenHTML()}`;
 }
 function memoText(C){
   const rows = [...document.querySelectorAll("#memo tbody tr")]
     .filter(tr=>tr.children.length>=5)
-    .map(tr=>[...tr.children].slice(0,5).map(td=>td.textContent.trim().replace(/\s+/g," ")).join(" | "));
+    .map(tr=>[...tr.children].slice(0,5).map(td=>(td.dataset.t!==undefined?td.dataset.t:td.textContent).trim().replace(/\s+/g," ")).join(" | "));
   return `MEMORIA DE CÁLCULO · decantador ${S.mode}\n`+rows.join("\n");
 }
 
@@ -1752,13 +1862,16 @@ async function exportPDF(){
     .c-t{font-size:30px;font-weight:700;letter-spacing:1px}.c-t2{font-size:19px;font-weight:600;margin-bottom:12px}
     .c-curso{font-size:14px}.c-block{font-size:13px;margin-top:10px}.c-block b{display:block;color:#0b6b3a;margin-bottom:2px;text-transform:uppercase;font-size:11px;letter-spacing:.6px}
     .c-foot{margin-top:26px;font-size:13px;color:#444}
-    h3{font-size:12.5px;margin:14px 0 3px;color:#0b6b3a;page-break-after:avoid} p.note{margin:0 0 5px;color:#555;font-size:9.5px}
+    h3{font-size:12.5px;margin:14px 0 3px;color:#0b6b3a;page-break-after:avoid;break-after:avoid} p.note{margin:0 0 5px;color:#555;font-size:9.5px;page-break-after:avoid;break-after:avoid}
     .tablewrap{border:1px solid #bbb;overflow:visible;padding:0}
     table{border-collapse:collapse;width:100%;font-size:9px}
     th,td{padding:3px 5px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}
     th{background:#eef2f4;font-size:8px;text-transform:uppercase;position:static}
     tr{page-break-inside:avoid} td.num{text-align:right;white-space:nowrap} td.res{font-weight:700;color:#0b6b3a}
-    td.f,td.s{font-family:Consolas,monospace;font-size:8.5px} tr.assump td:first-child{border-left:3px solid #e0c64c}
+    td.f,td.s{font-family:"Cambria Math","Times New Roman",Times,serif;font-size:10.5px;white-space:normal} tr.assump td:first-child{border-left:3px solid #e0c64c}
+    .fr{display:inline-block;vertical-align:middle;text-align:center;margin:0 1px}.fr>.nu{display:block;padding:0 2px;border-bottom:.8px solid #000;line-height:1.25}.fr>.de{display:block;padding:0 2px;line-height:1.25}
+    .rd>.rb{display:inline-block;border-top:.8px solid #000;padding:0 1px}sub,sup{font-size:.7em;line-height:0}
+    tr.nsec td{background:#e4eef2;font-weight:700;color:#0b6b3a;font-size:9.5px} table.nomen td.nsym{font-size:11.5px;white-space:nowrap;width:1%}
     .badge{font-size:8px;font-weight:700} .badge.ok{color:#0b7a3b}.badge.warn{color:#b4570a}
     .v{font-weight:700}
     div[style*="grid"]{display:grid!important;grid-template-columns:repeat(2,1fr)!important;gap:0 18px!important}
