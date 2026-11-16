@@ -117,6 +117,7 @@ footer{padding:10px 18px;font-size:11.5px;color:var(--muted);background:#e9eef2;
   </div>
   <div class="spacer"></div>
   <button id="btn-dxf" class="dxfbtn" title="Descarga un DXF con planta, corte frontal, corte de perfil y modelo 3D en metros (1 unidad = 1 m)">⬇ Exportar AutoCAD (.dxf)</button>
+  <button id="btn-planopdf" class="dxfbtn" title="Genera el plano (planta, corte frontal y corte de perfil) en PDF con membrete, en la hoja A1, A2 o A3">⬇ Plano en PDF</button>
   <div class="mode" role="group" aria-label="Tipo de decantador">
     <button id="m-prim" aria-pressed="true">Primario</button>
     <button id="m-sec" aria-pressed="false">Secundario</button>
@@ -1160,7 +1161,7 @@ const MB_DEF={papel:"A3",inst:"UPeU - E.P. Ingeniería Ambiental",proyecto:"Deca
   escuela:"Facultad de Ingeniería y Arquitectura",curso:"Tratamiento de Aguas Residuales",titulo:"",
   integrantes:"Edith Jhakelin Luque Torres\nBerenise Yesmit Surco Arbues",docente:"Juan Eduardo Vigo Rivera"};
 const TEXT_KEYS=["inst","proyecto","ubicacion","codigo","dibujo","reviso","aprobo","fecha","escuela","curso","titulo","integrantes","docente"];
-let EXPORT_MB=null, EXPORT_DIAG=null;      // datos usados por la exportación en curso
+let EXPORT_MB=null, EXPORT_DIAG=null, SVG_MODE=false;      // datos usados por la exportación en curso
 let MB={...MB_DEF};
 try{ const j=JSON.parse(localStorage.getItem(MB_KEY)||"null"); if(j&&typeof j==="object") MB={...MB_DEF,...j}; }catch(e){}
 function saveMB(){ try{ localStorage.setItem(MB_KEY,JSON.stringify(MB)); }catch(e){} }
@@ -1249,8 +1250,8 @@ function writeDXF(P,F,L3,C3,info){
       head,
       line(x1,y1,z1,x2,y2,z2,layer){ head("LINE",layer,"AcDbLine"); add(10,n(x1)); add(20,n(y1)); add(30,n(z1)); add(11,n(x2)); add(21,n(y2)); add(31,n(z2)); },
       circle(x,y,z,r,layer){ head("CIRCLE",layer,"AcDbCircle"); add(10,n(x)); add(20,n(y)); add(30,n(z)); add(40,n(r)); },
-      text(x,y,h,s,layer,al="l",rot=0){
-        head("TEXT",layer,"AcDbText"); add(10,n(x)); add(20,n(y)); add(30,0); add(40,n(h)); add(1,san(s)); add(50,n(rot)); add(7,"STANDARD");
+      text(x,y,h,s,layer,al="l",rot=0,style="STANDARD"){
+        head("TEXT",layer,"AcDbText"); add(10,n(x)); add(20,n(y)); add(30,0); add(40,n(h)); add(1,san(s)); add(50,n(rot)); add(7,style);
         if(al!=="l"){ add(72,al==="c"?1:2); add(11,n(x)); add(21,n(y)); add(31,0); }
         add(100,"AcDbText"); add(73,0);
       },
@@ -1301,7 +1302,7 @@ function writeDXF(P,F,L3,C3,info){
     {name:"03 PERFIL",title:`CORTE DE PERFIL B-B - DECANTADOR ${nombre}`,views:["prof"]}
   ];
   // ---------- geometría de la hoja ----------
-  const fx0=20, fy0=10, fx1=W-10, fy1=HH-10, Wf=fx1-fx0, hm=40*tk, pad=5*tk, gap=8*tk, lab=8*tk;
+  const fx0=20, fy0=10, fx1=W-10, fy1=HH-10, Wf=fx1-fx0, hm=51*tk, pad=5*tk, gap=8*tk, lab=8*tk;
   const ax=fx0+pad, ay=fy0+hm+pad, aw=Wf-2*pad, ah=(fy1-pad)-ay;
   function fit(vs){
     let best=null;
@@ -1325,36 +1326,68 @@ function writeDXF(P,F,L3,C3,info){
     return {den:best.den,rects};
   }
 
-  // ---------- membrete (espacio papel, milímetros) ----------
+  // ---------- membrete (espacio papel, milímetros): Times New Roman, texto ajustado a cada recuadro ----------
+  const CW=ch=>{                       // ancho relativo (em) de un carácter en Times New Roman
+    if(ch===" ") return 0.25;
+    if(/[A-ZÁÉÍÓÚÑÜ]/.test(ch)) return (ch==="W"||ch==="M")?0.9:0.7;
+    if(/[0-9]/.test(ch)) return 0.5;
+    if(/[iljtf.,;:'!|()\-\/]/.test(ch)) return 0.3;
+    if(/[mw]/.test(ch)) return 0.76;
+    return 0.47; };
+  const twT=(s,h)=>{ let w=0; for(const ch of String(s)) w+=CW(ch); return w*h/0.66; };   // h = altura de mayúscula
+  const wrapLines=(s,h,maxw)=>{
+    const words=String(s).split(/\s+/).filter(Boolean), lines=[]; let cur="";
+    for(const w of words){ const t=cur?cur+" "+w:w; if(!cur||twT(t,h)<=maxw) cur=t; else { lines.push(cur); cur=w; } }
+    if(cur) lines.push(cur); return lines; };
+  function fitBlock(s,maxw,maxh,h0,hmin,maxLines){
+    for(let h=h0; h>=hmin-1e-9; h*=0.93){
+      const lines=wrapLines(s,h,maxw);
+      if(lines.length<=maxLines && ((lines.length-1)*1.45+1)*h<=maxh && lines.every(l=>twT(l,h)<=maxw)) return {lines,h};
+    }
+    const h=hmin, all=wrapLines(s,h,maxw), nL=Math.max(1,Math.min(maxLines,Math.floor((maxh/h-1)/1.45)+1));
+    let cut=all.length>nL; const lines=all.slice(0,nL).map(l=>{ let t=l; while(t.length>1&&twT(t,h)>maxw){ t=t.slice(0,-1); cut=true; } return t; });
+    if(cut){ let t=lines[lines.length-1]; while(t.length>1&&twT(t+"...",h)>maxw) t=t.slice(0,-1); lines[lines.length-1]=t+"..."; }
+    return {lines,h};
+  }
   function membrete(em,li,def,escala){
-    const frame=(x0,y0,x1,y1,l)=>em.poly(l,[[x0,y0],[x1,y0],[x1,y1],[x0,y1]],true);
-    frame(fx0,fy0,fx1,fy1,"MARCO");
-    const yb=fy0+hm, ym=fy0+hm/2;
+    const T="TIMES", rh=hm/3, yb=fy0+hm;
+    em.poly("MARCO",[[fx0,fy0],[fx1,fy0],[fx1,fy1],[fx0,fy1]],true);
     em.line(fx0,yb,0,fx1,yb,0,"MEMB_LINEA");
-    const cw=[0.15,0.29,0.24,0.32].map(f=>f*Wf), xs=[fx0]; cw.forEach(w=>xs.push(xs[xs.length-1]+w));
+    const cw=[0.13,0.28,0.32,0.27].map(f=>f*Wf), xs=[fx0]; cw.forEach(w=>xs.push(xs[xs.length-1]+w));
+    const wd=cw[3]/2;
     for(let i=1;i<4;i++) em.line(xs[i],fy0,0,xs[i],yb,0,"MEMB_LINEA");
-    for(let i=1;i<4;i++) em.line(xs[i],ym,0,xs[i+1],ym,0,"MEMB_LINEA");
-    const wd=cw[3]/3; for(let i=1;i<3;i++) em.line(xs[3]+wd*i,fy0,0,xs[3]+wd*i,yb,0,"MEMB_LINEA");
-    const cell=(x,y,w,h,label,value,vh)=>{
-      const lh=1.8*tk; em.text(x+1.5*tk,y+h-lh-1.0*tk,lh,label,"MEMB_ETIQ");
-      let s=san(value), hh=vh, maxw=w-3*tk;
-      if(tw(s,hh)>maxw) hh=Math.max(1.4*tk,maxw/(s.length*0.7));
-      const maxc=Math.floor(maxw/(hh*0.7)); if(s.length>maxc) s=s.slice(0,Math.max(1,maxc));
-      if(s) em.text(x+1.5*tk,y+0.16*h,hh,s,"MEMB_TEXTO");
+    em.line(xs[3]+wd,fy0,0,xs[3]+wd,yb,0,"MEMB_LINEA");
+    for(const k of [1,2]){ em.line(xs[1],fy0+k*rh,0,xs[2],fy0+k*rh,0,"MEMB_LINEA"); em.line(xs[3],fy0+k*rh,0,fx1,fy0+k*rh,0,"MEMB_LINEA"); }
+    em.line(xs[2],fy0+rh,0,xs[3],fy0+rh,0,"MEMB_LINEA");
+    const cell=(x,y,w,h,label,value,vh,maxLines)=>{
+      const p1=2.2*tk, lh=1.9*tk;
+      em.text(x+p1,y+h-lh-1.3*tk,lh,label,"MEMB_ETIQ","l",0,T);
+      const s=san(value); if(!s) return;
+      const top=y+h-lh-3.0*tk, bot=y+1.4*tk, maxh=top-bot;
+      const f=fitBlock(s,w-2*p1,maxh,vh,1.7*tk,maxLines);
+      const blockH=((f.lines.length-1)*1.45+1)*f.h;
+      const base0=bot+(maxh-blockH)/2+(f.lines.length-1)*1.45*f.h;      // base de la 1.ª línea
+      f.lines.forEach((ln,i)=>em.text(x+p1,base0-i*1.45*f.h,f.h,ln,"MEMB_TEXTO","l",0,T));
     };
-    const rh=hm/2;
-    cell(xs[1],ym,cw[1],rh,"INSTITUCION / EMPRESA",M.inst,3.4*tk);
-    cell(xs[1],fy0,cw[1],rh,"PROYECTO / UBICACION",[M.proyecto,M.ubicacion].filter(Boolean).join(" - "),3.0*tk);
-    cell(xs[2],ym,cw[2],rh,"TITULO DEL PLANO",def.title,3.6*tk);
-    cell(xs[2],fy0,cw[2],rh,"INTEGRANTES",String(M.integrantes||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean).join("; "),3.0*tk);
-    cell(xs[3],ym,wd,rh,"DIBUJO",M.dibujo,3.0*tk);
-    cell(xs[3]+wd,ym,wd,rh,"REVISO",M.reviso,3.0*tk);
-    cell(xs[3]+2*wd,ym,wd,rh,"APROBO",M.aprobo,3.0*tk);
-    cell(xs[3],fy0,wd,rh,"FECHA",M.fecha,3.0*tk);
-    cell(xs[3]+wd,fy0,wd,rh,"ESCALA",escala,3.4*tk);
-    cell(xs[3]+2*wd,fy0,wd,rh,"LAMINA",`${M.codigo?M.codigo+"-":""}${String(li+1).padStart(2,"0")}  (${li+1}/3)`,3.0*tk);
+    const integ=String(M.integrantes||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean).join("; ");
+    cell(xs[1],fy0+2*rh,cw[1],rh,"INSTITUCIÓN / EMPRESA",M.inst,4.2*tk,2);
+    cell(xs[1],fy0+rh,cw[1],rh,"PROYECTO",M.proyecto,3.8*tk,2);
+    cell(xs[1],fy0,cw[1],rh,"UBICACIÓN",M.ubicacion,3.8*tk,2);
+    cell(xs[2],fy0+rh,cw[2],2*rh,"TÍTULO DEL PLANO",def.title,6.2*tk,3);
+    cell(xs[2],fy0,cw[2],rh,"INTEGRANTES",integ,3.4*tk,2);
+    cell(xs[3],fy0+2*rh,wd,rh,"DIBUJÓ",M.dibujo,3.6*tk,2);
+    cell(xs[3]+wd,fy0+2*rh,wd,rh,"REVISÓ",M.reviso,3.6*tk,2);
+    cell(xs[3],fy0+rh,wd,rh,"APROBÓ",M.aprobo,3.6*tk,2);
+    cell(xs[3]+wd,fy0+rh,wd,rh,"FECHA",M.fecha,3.6*tk,1);
+    cell(xs[3],fy0,wd,rh,"ESCALA",escala,4.2*tk,1);
+    cell(xs[3]+wd,fy0,wd,rh,"LÁMINA",`${M.codigo?M.codigo+"-":""}${String(li+1).padStart(2,"0")}  (${li+1}/3)`,3.6*tk,1);
     // logo
-    const runs=M.logo?logoRuns():[];
+    const runs=(M.logo&&LOGO&&!SVG_MODE)?logoRuns():[];
+    if(SVG_MODE&&M.logo&&LOGO){            // en el PDF el logo va como imagen (nítido)
+      const bx=fx0+2*tk, by=fy0+2*tk, bw=cw[0]-4*tk, bh=hm-4*tk;
+      const cs=Math.min(bw/LOGO.w,bh/LOGO.h);
+      em.image(bx+(bw-LOGO.w*cs)/2,by+(bh-LOGO.h*cs)/2,LOGO.w*cs,LOGO.h*cs,M.logo);
+    }
     if(runs.length){
       const bx=fx0+2*tk, by=fy0+2*tk, bw=cw[0]-4*tk, bh=hm-4*tk;
       const cs=Math.min(bw/LOGO.w,bh/LOGO.h), ox=bx+(bw-LOGO.w*cs)/2, oy=by+(bh-LOGO.h*cs)/2;
@@ -1363,6 +1396,49 @@ function writeDXF(P,F,L3,C3,info){
         em.solid("LOGO",X0,Y0,X1,Y1,q);
       }
     }
+  }
+
+  // ---------- emisor SVG (plano en PDF): mismo membrete y mismas vistas que los layouts del DXF ----------
+  const ACI={1:"#e00000",2:"#b38f00",3:"#009a00",4:"#0095b3",5:"#0030ff",6:"#b000b0",7:"#000000",8:"#7f7f7f",9:"#a5a5a5",30:"#e87000",32:"#9c5a1e",140:"#1479b8"};
+  const lcol=layer=>ACI[layerInfo(layer)[0]]||"#000000";
+  const lwid=layer=>({MARCO:0.7,MEMB_LINEA:0.35,MARCO_VISTA:0.25,MURO:0.35,LOSA:0.3}[layer]||0.18);
+  const ldash=layer=>{ const lt=layerInfo(layer)[1]; return lt==="HIDDEN"?' stroke-dasharray="1.4 0.8"':lt==="CENTER"?' stroke-dasharray="6 1.2 1.2 1.2"':""; };
+  const xe=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const f3=v=>(+v).toFixed(3);
+  function SvgEm(out,pg){
+    const Y=y=>HH-y; let cid=0;
+    const txt=(x,y,h,s,layer,al,rot,style)=>{
+      const times=style==="TIMES", fs=times?h/0.66:h/0.72, fam=times?"'Times New Roman',Times,serif":"Arial,Helvetica,sans-serif";
+      out.push(`<text x="${f3(x)}" y="${f3(Y(y))}" font-family="${fam}" font-size="${f3(fs)}" fill="${lcol(layer)}" text-anchor="${al==="c"?"middle":"start"}"${rot?` transform="rotate(${-rot} ${f3(x)} ${f3(Y(y))})"`:""}>${xe(san(s))}</text>`);
+    };
+    return {
+      line(x1,y1,z1,x2,y2,z2,layer){ out.push(`<line x1="${f3(x1)}" y1="${f3(Y(y1))}" x2="${f3(x2)}" y2="${f3(Y(y2))}" stroke="${lcol(layer)}" stroke-width="${lwid(layer)}"${ldash(layer)}/>`); },
+      poly(layer,pts,closed){ out.push(`<${closed?"polygon":"polyline"} points="${pts.map(p=>f3(p[0])+","+f3(Y(p[1]))).join(" ")}" fill="none" stroke="${lcol(layer)}" stroke-width="${lwid(layer)}" stroke-linejoin="miter"/>`); },
+      solid(layer,x0,y0,x1,y1,color){ out.push(`<rect x="${f3(x0)}" y="${f3(Y(y1))}" width="${f3(x1-x0+0.03)}" height="${f3(y1-y0+0.03)}" fill="#${color.toString(16).padStart(6,"0")}"/>`); },
+      text(x,y,h,s,layer,al="l",rot=0,style="STANDARD"){ txt(x,y,h,s,layer,al,rot,style); },
+      image(x,y,w,h,href){ out.push(`<image href="${href}" x="${f3(x)}" y="${f3(Y(y+h))}" width="${f3(w)}" height="${f3(h)}" preserveAspectRatio="xMidYMid meet"/>`); },
+      viewport(o){
+        if(o.id===1) return;
+        const sc=o.h/o.vh, id=`cp${pg}_${cid++}`;
+        const mx0=o.vcx-o.w/(2*sc)-1, mx1=o.vcx+o.w/(2*sc)+1, my0=o.vcy-o.h/(2*sc)-1, my1=o.vcy+o.h/(2*sc)+1;
+        const X=x=>o.cx+(x-o.vcx)*sc, YY=y=>Y(o.cy+(y-o.vcy)*sc);
+        out.push(`<clipPath id="${id}"><rect x="${f3(o.cx-o.w/2)}" y="${f3(Y(o.cy+o.h/2))}" width="${f3(o.w)}" height="${f3(o.h)}"/></clipPath><g clip-path="url(#${id})" stroke-linecap="round">`);
+        for(const p of P){
+          if(p[0]==="L"){
+            if((p[1]<mx0&&p[3]<mx0)||(p[1]>mx1&&p[3]>mx1)||(p[2]<my0&&p[4]<my0)||(p[2]>my1&&p[4]>my1)) continue;
+            out.push(`<line x1="${f3(X(p[1]))}" y1="${f3(YY(p[2]))}" x2="${f3(X(p[3]))}" y2="${f3(YY(p[4]))}" stroke="${lcol(p[5])}" stroke-width="${lwid(p[5])}"${ldash(p[5])}/>`);
+          } else if(p[0]==="C"){
+            if(p[1]+p[3]<mx0||p[1]-p[3]>mx1||p[2]+p[3]<my0||p[2]-p[3]>my1) continue;
+            out.push(`<circle cx="${f3(X(p[1]))}" cy="${f3(YY(p[2]))}" r="${f3(p[3]*sc)}" fill="none" stroke="${lcol(p[4])}" stroke-width="${lwid(p[4])}"/>`);
+          } else {
+            const [,x,y,h,s,layer,al,rot]=p; if(x<mx0-3||x>mx1+3||y<my0-3||y>my1+3) continue;
+            const fs=h*sc/0.72;
+            out.push(`<text x="${f3(X(x))}" y="${f3(YY(y))}" font-family="Arial,Helvetica,sans-serif" font-size="${f3(fs)}" fill="${lcol(layer)}" text-anchor="${al==="c"?"middle":"start"}"${rot?` transform="rotate(${-rot} ${f3(X(x))} ${f3(YY(y))})"`:""}>${xe(san(s))}</text>`);
+          }
+        }
+        out.push("</g>");
+      }
+    };
   }
 
   // ---------- secciones ----------
@@ -1384,8 +1460,9 @@ function writeDXF(P,F,L3,C3,info){
   // layouts
   const paperEnt=[[],[],[]];
   const layInfo=[];
+  const SVG_PAGES=[];
   LDEFS.forEach((def,li)=>{
-    const arr=li===0?ent:paperEnt[li], em=Em(arr,hBrPaper[li],true);
+    const arr=li===0?ent:paperEnt[li], svgOut=SVG_MODE?[]:null, em=SVG_MODE?SvgEm(svgOut,li):Em(arr,hBrPaper[li],true);
     const vs=def.views.map(k=>VIEWS[k]);
     const {den,rects}=fit(vs);
     const escala="1:"+den;
@@ -1402,7 +1479,9 @@ function writeDXF(P,F,L3,C3,info){
       if(v.label) em.text(r.x+r.w/2,r.y-lab*0.7,2.6*tk,v.label,"MEMB_TEXTO","c");
     });
     layInfo.push({den});
+    if(SVG_MODE) SVG_PAGES.push(svgOut.join("\n"));
   });
+  if(SVG_MODE) return SVG_PAGES;
   // el manejador del viewport principal de cada layout se recupera buscando su 1.ª entidad VIEWPORT
   const firstVp=arr=>{ for(let i=0;i<arr.length;i++){ if(arr[i]==="VIEWPORT"&&arr[i-1]==="0"&&arr[i+1]==="5"){ return arr[i+2]; } } return "0"; };
 
@@ -1447,6 +1526,7 @@ function writeDXF(P,F,L3,C3,info){
         if(noplot) r.push(290,0); r.push(370,lw||-3,390,"13"); rs.push(r.map(String)); });
       TPL.tables.LAYER.recs.filter(r=>getc(r,"2")!=="0").forEach(r=>rs.push(r.slice()));   // Defpoints
       return rs; },
+    STYLE:()=>[...TPL.tables.STYLE.recs.map(r=>r.slice()),[0,"STYLE",5,H(),330,TPL.tables.STYLE.handle,100,"AcDbSymbolTableRecord",100,"AcDbTextStyleTableRecord",2,"TIMES",70,0,40,"0.0",41,"1.0",50,"0.0",71,0,42,"2.5",3,"times.ttf",4,""].map(String)],
     BLOCK_RECORD:()=>[hBrModel,...hBrPaper].map((h,i)=>[0,"BLOCK_RECORD",5,h,330,TB,100,"AcDbSymbolTableRecord",100,"AcDbBlockTableRecord",2,brNames[i],340,i===0?hLayModel:hLay[i-1]].map(String))
   };
   aT(0,"SECTION"); aT(2,"TABLES");
@@ -1521,6 +1601,8 @@ const FIELD_LABELS={inst:"Institución / empresa",proyecto:"Proyecto",ubicacion:
 const DLG_SETS={
   dxf:{title:"Datos del membrete (opcional)",note:"Se imprimen en el membrete de cada layout del plano (planta, frontal y perfil). Puedes dejar campos vacíos u omitirlos todos.",
        keys:["inst","proyecto","ubicacion","codigo","integrantes","dibujo","reviso","aprobo","fecha"],paper:true,ok:"Exportar AutoCAD"},
+  plano:{title:"Datos del membrete del plano en PDF (opcional)",note:"Se imprimen en el membrete de cada lámina (planta, frontal y perfil). Puedes dejar campos vacíos u omitirlos todos; elige el tamaño de hoja.",
+       keys:["inst","proyecto","ubicacion","codigo","integrantes","dibujo","reviso","aprobo","fecha"],paper:true,ok:"Generar plano PDF"},
   pdf:{title:"Datos de la carátula (opcional)",note:"Se usan en la carátula (primera página) de la memoria de cálculo en PDF. Puedes dejar campos vacíos u omitirlos todos.",
        keys:["inst","escuela","curso","titulo","integrantes","docente","ubicacion","fecha"],paper:false,ok:"Generar PDF"}
 };
@@ -1604,6 +1686,36 @@ async function exportDXF(){
 document.getElementById("btn-dxf").addEventListener("click",exportDXF);
 logoReady=loadLogo(MB.logo);
 
+async function printDoc(doc){
+  const fr=document.createElement("iframe");
+  fr.setAttribute("aria-hidden","true"); fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(fr);
+  const w=fr.contentWindow; w.document.open(); w.document.write(doc); w.document.close();
+  await Promise.all([...w.document.images].map(i=>i.complete?Promise.resolve():new Promise(r=>{ i.onload=i.onerror=r; })));
+  const fin=()=>setTimeout(()=>fr.remove(),500);
+  w.addEventListener("afterprint",fin);
+  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){ alert("No se pudo abrir el cuadro de impresión."); fin(); } },150);
+}
+
+/* =========================================================
+   PLANO EN PDF: planta, corte frontal y corte de perfil, con membrete, en la hoja elegida
+   ========================================================= */
+async function exportPlanoPDF(){
+  const ans=await askData("plano"); if(!ans) return;
+  let pages, pap;
+  try{
+    await logoReady;
+    EXPORT_MB=getMB(ans==="skip"); pap=PAPER[EXPORT_MB.papel]; SVG_MODE=true;
+    pages=buildDXF(S,compute(S));
+  }catch(e){ alert("No se pudo generar el plano: "+e.message); console.error(e); return; }
+  finally{ EXPORT_MB=null; SVG_MODE=false; }
+  const W=pap.w, H=pap.h;
+  const css=`@page{size:${W}mm ${H}mm;margin:0}html,body{margin:0;padding:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    svg{display:block;width:${W}mm;height:${H}mm;page-break-after:always;break-after:page;overflow:hidden}svg:last-of-type{page-break-after:auto;break-after:auto}`;
+  const svgs=pages.map(p=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}mm" height="${H}mm"><rect width="${W}" height="${H}" fill="#fff"/>${p}</svg>`).join("");
+  await printDoc(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Plano decantador ${S.mode} ${pap.name.split("_")[3]||""}</title><style>${css}</style></head><body>${svgs}</body></html>`);
+}
+document.getElementById("btn-planopdf").addEventListener("click",exportPlanoPDF);
 /* =========================================================
    MEMORIA DE CÁLCULO EN PDF: carátula + contenido (cuadro de impresión)
    ========================================================= */
@@ -1653,14 +1765,7 @@ async function exportPDF(){
     .field{display:grid;grid-template-columns:1fr auto auto;gap:6px;margin:2px 0}
     .legendline{font-size:9px;color:#555}`;
   const doc=`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Memoria de calculo - Decantador ${S.mode}</title><style>${css}</style></head><body>${cover}<div>${tmp.innerHTML}</div></body></html>`;
-  const fr=document.createElement("iframe");
-  fr.setAttribute("aria-hidden","true"); fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
-  document.body.appendChild(fr);
-  const w=fr.contentWindow; w.document.open(); w.document.write(doc); w.document.close();
-  await Promise.all([...w.document.images].map(i=>i.complete?Promise.resolve():new Promise(r=>{ i.onload=i.onerror=r; })));
-  const fin=()=>setTimeout(()=>fr.remove(),500);
-  w.addEventListener("afterprint",fin);
-  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){ alert("No se pudo abrir el cuadro de impresión."); fin(); } },150);
+  await printDoc(doc);
 }
 
 </script>
