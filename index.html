@@ -1136,6 +1136,7 @@ function buildDXF(S, C){
   return writeDXF(P,F,L3,C3,{mk,nombre,sec,S,C});
 }
 
+const DXF_TPL={"header":["9","$ACADVER","1","AC1015","9","$ACADMAINTVER","70","6","9","$DWGCODEPAGE","3","ANSI_1252","9","$INSBASE","10","0.0","20","0.0","30","0.0","9","$EXTMIN","10","1e+20","20","1e+20","30","1e+20","9","$EXTMAX","10","-1e+20","20","-1e+20","30","-1e+20","9","$LIMMIN","10","0.0","20","0.0","9","$LIMMAX","10","420.0","20","297.0","9","$ORTHOMODE","70","0","9","$REGENMODE","70","1","9","$FILLMODE","70","1","9","$QTEXTMODE","70","0","9","$MIRRTEXT","70","1","9","$LTSCALE","40","1.0","9","$ATTMODE","70","1","9","$TEXTSIZE","40","2.5","9","$TRACEWID","40","1.0","9","$TEXTSTYLE","7","Standard","9","$CLAYER","8","0","9","$CELTYPE","6","ByLayer","9","$CECOLOR","62","256","9","$CELTSCALE","40","1.0","9","$DISPSILH","70","0","9","$DIMSCALE","40","1.0","9","$DIMASZ","40","2.5","9","$DIMEXO","40","0.625","9","$DIMDLI","40","3.75","9","$DIMRND","40","0.0","9","$DIMDLE","40","0.0","9","$DIMEXE","40","1.25","9","$DIMTP","40","0.0","9","$DIMTM","40","0.0","9","$DIMTXT","40","2.5","9","$DIMCEN","40","2.5","9","$DIMTSZ","40","0.0","9","$DIMTOL","70","0","9","$DIMLIM","70","0","9","$DIMTIH","70","0","9","$DIMTOH","70","0","9","$DIMSE1","70","0","9","$DIMSE2","70","0","9","$DIMTAD","70","1","9","$DIMZIN","70","8","9","$DIMBLK","1","","9","$DIMASO","70","1","9","$DIMSHO","70","1","9","$DIMPOST","1","","9","$DIMAPOST","1","","9","$DIMALT","70","0","9","$DIMALTD","70","3","9","$DIMALTF","40","0.03937007874","9","$DIMLFAC","40","1.0","9","$DIMTOFL","70","1","9","$DIMTVP","40","0.0","9","$DIMTIX","70","0","9","$DIMSOXD","70","0","9","$DIMSAH","70","0","9","$DIMBLK1","1","","9","$DIMBLK2","1","","9","$DIMSTYLE","2","ISO-25","9","$DIMCLRD","70","0","9","$DIMCLRE","70","0","9","$DIMCLRT","70","0","9","$DIMTFAC","40","1.0","9","$DIMGAP","40","0.625","9","$DIMJUST","70","0","9","$DIMSD1","70","0","9","$DIMSD2","70","0","9","$DIMTOLJ","70","0","9","$DIMTZIN","70","8","9","$DIMALTZ","70","0","9","$DIMALTTZ","70","0","9","$DIMUPT","70","0","9","$DIMDEC","70","2","9","$DIMTDEC","70","2","9","$DIMALTU","70","2","9","$DIMALTTD","70","3","9","$DIMTXSTY","7","Standard","9","$DIMAUNIT","70","0","9","$DIMADEC","70","0","9","$DIMALTRND","40","0.0","9","$DIMAZIN","70","0","9","$DIMDSEP","70","44","9","$DIMATFIT","70","3","9","$DIMFRAC","70","0","9","$DIMLDRBLK","1","","9","$DIMLUNIT","70","2","9","$DIMLWD","70","-2","9","$DIMLWE","70","-2","9","$DIMTMOVE","70","0","9","$LUNITS","70","2","9","$LUPREC","70","4","9","$SKETCHINC","40","1.0","9","$FILLETRAD","40","10.0","9","$AUNITS","70","0","9","$AUPREC","70","2","9","$MENU","1",".","9","$ELEVATION","40","0.0","9","$PELEVATION","40","0.0","9","$THICKNESS","40","0.0","9","$LIMCHECK","70","0","9","$CHAMFERA","40","0.0","9","$CHAMFERB","40","0.0","9","$CHAMFERC","40","0.0","9","$CHAMFERD","40","0.0","9","$SKPOLY","70","0","9","$TDCREATE","40","2461361.691099537","9","$TDUCREATE","40","2458532.153996898","9","$TDUPDATE","40","2461361.691099537","9","$TDUUPDATE","40","2458532.1544311","9","$TDINDWG","40","0.0","9","$TDUSRTIMER","40","0.0","9","$USRTIMER","70","1","9","$ANGBASE","50","0.0","9","$ANGDIR","70","0","9","$PDMODE","70","0","9","$PDSIZE","40","0.0","9","$PLINEWID","40","0.0","9","$SPLFRAME","70","0","9","$SPLINETYPE","70","6","9","$SPLINESEGS","70","8","9","$HANDSEED","5","32","9","$SURFTAB1","70","6","9","$SURFTAB2","70","6","9","$SURFTYPE","70","6","9","$SURFU","70","6","9","$SURFV","70","6","9","$UCSBASE","2","","9","$UCSNAME","2","","9","$UCSORG","10","0.0","20","0.0","30","0.0","9","$UCSXDIR","10","1.0","20","0.0","30","0.0","9","$UCSYDIR","10","0.0","20","1.0","30","0.0","9","$UCSORTHOREF","2","","9","$UCSORTHOVIEW","70","0","9","$UCSORGTOP","10","0.0","20","0.0","30","0.0","9","$UCSORGBOTTOM","10","0.0","20","0.0","30","0.0","9","$UCSORGLEFT","10","0.0","20","0.0","30","0.0","9","$UCSORGRIGHT","10","0.0","20","0.0","30","0.0","9","$UCSORGFRONT","10","0.0","20","0.0","30","0.0","9","$UCSORGBACK","10","0.0","20","0.0","30","0.0","9","$PUCSBASE","2","","9","$PUCSNAME","2","","9","$PUCSORG","10","0.0","20","0.0","30","0.0","9","$PUCSXDIR","10","1.0","20","0.0","30","0.0","9","$PUCSYDIR","10","0.0","20","1.0","30","0.0","9","$PUCSORTHOREF","2","","9","$PUCSORTHOVIEW","70","0","9","$PUCSORGTOP","10","0.0","20","0.0","30","0.0","9","$PUCSORGBOTTOM","10","0.0","20","0.0","30","0.0","9","$PUCSORGLEFT","10","0.0","20","0.0","30","0.0","9","$PUCSORGRIGHT","10","0.0","20","0.0","30","0.0","9","$PUCSORGFRONT","10","0.0","20","0.0","30","0.0","9","$PUCSORGBACK","10","0.0","20","0.0","30","0.0","9","$USERI1","70","0","9","$USERI2","70","0","9","$USERI3","70","0","9","$USERI4","70","0","9","$USERI5","70","0","9","$USERR1","40","0.0","9","$USERR2","40","0.0","9","$USERR3","40","0.0","9","$USERR4","40","0.0","9","$USERR5","40","0.0","9","$WORLDVIEW","70","1","9","$SHADEDGE","70","3","9","$SHADEDIF","70","70","9","$TILEMODE","70","1","9","$MAXACTVP","70","64","9","$PINSBASE","10","0.0","20","0.0","30","0.0","9","$PLIMCHECK","70","0","9","$PEXTMIN","10","1e+20","20","1e+20","30","1e+20","9","$PEXTMAX","10","-1e+20","20","-1e+20","30","-1e+20","9","$PLIMMIN","10","0.0","20","0.0","9","$PLIMMAX","10","420.0","20","297.0","9","$UNITMODE","70","0","9","$VISRETAIN","70","1","9","$PLINEGEN","70","0","9","$PSLTSCALE","70","1","9","$TREEDEPTH","70","3020","9","$CMLSTYLE","2","Standard","9","$CMLJUST","70","0","9","$CMLSCALE","40","20.0","9","$PROXYGRAPHICS","70","1","9","$MEASUREMENT","70","1","9","$CELWEIGHT","370","-1","9","$ENDCAPS","280","0","9","$JOINSTYLE","280","0","9","$LWDISPLAY","290","0","9","$INSUNITS","70","6","9","$HYPERLINKBASE","1","","9","$STYLESHEET","1","","9","$XEDIT","290","1","9","$CEPSNTYPE","380","0","9","$PSTYLEMODE","290","1","9","$FINGERPRINTGUID","2","{9DA4C026-97F1-4B36-927D-19F773B59350}","9","$VERSIONGUID","2","{29A1B6EF-397D-4E6B-AFE5-6BC2AC973BF2}","9","$EXTNAMES","290","1","9","$PSVPSCALE","40","0.0","9","$OLESTARTUP","290","0"],"classes":["0","CLASS","1","ACDBDICTIONARYWDFLT","2","AcDbDictionaryWithDefault","3","ObjectDBX Classes","90","0","280","0","281","0","0","CLASS","1","SUN","2","AcDbSun","3","SCENEOE","90","1153","280","0","281","0","0","CLASS","1","VISUALSTYLE","2","AcDbVisualStyle","3","ObjectDBX Classes","90","4095","280","0","281","0","0","CLASS","1","MATERIAL","2","AcDbMaterial","3","ObjectDBX Classes","90","1153","280","0","281","0","0","CLASS","1","SCALE","2","AcDbScale","3","ObjectDBX Classes","90","1153","280","0","281","0","0","CLASS","1","TABLESTYLE","2","AcDbTableStyle","3","ObjectDBX Classes","90","4095","280","0","281","0","0","CLASS","1","MLEADERSTYLE","2","AcDbMLeaderStyle","3","ACDB_MLEADERSTYLE_CLASS","90","4095","280","0","281","0","0","CLASS","1","DICTIONARYVAR","2","AcDbDictionaryVar","3","ObjectDBX Classes","90","0","280","0","281","0","0","CLASS","1","CELLSTYLEMAP","2","AcDbCellStyleMap","3","ObjectDBX Classes","90","1152","280","0","281","0","0","CLASS","1","MENTALRAYRENDERSETTINGS","2","AcDbMentalRayRenderSettings","3","SCENEOE","90","1024","280","0","281","0","0","CLASS","1","ACDBDETAILVIEWSTYLE","2","AcDbDetailViewStyle","3","ObjectDBX Classes","90","1025","280","0","281","0","0","CLASS","1","ACDBSECTIONVIEWSTYLE","2","AcDbSectionViewStyle","3","ObjectDBX Classes","90","1025","280","0","281","0","0","CLASS","1","RASTERVARIABLES","2","AcDbRasterVariables","3","ISM","90","0","280","0","281","0","0","CLASS","1","ACDBPLACEHOLDER","2","AcDbPlaceHolder","3","ObjectDBX Classes","90","0","280","0","281","0","0","CLASS","1","LAYOUT","2","AcDbLayout","3","ObjectDBX Classes","90","0","280","0","281","0"],"tables":{"VPORT":{"head":["5","8","330","0","100","AcDbSymbolTable"],"handle":"8","recs":[["0","VPORT","5","23","330","8","100","AcDbSymbolTableRecord","100","AcDbViewportTableRecord","2","*Active","70","0","10","0.0","20","0.0","11","1.0","21","1.0","12","0.0","22","0.0","13","0.0","23","0.0","14","0.5","24","0.5","15","0.5","25","0.5","16","0.0","26","0.0","36","1.0","17","0.0","27","0.0","37","0.0","40","1000.0","41","1.34","42","50.0","43","0.0","44","0.0","50","0.0","51","0.0","71","0","72","1000","73","1","74","3","75","0","76","0","77","0","78","0","281","0","65","0","146","0.0"]]},"LTYPE":{"head":["5","2","330","0","100","AcDbSymbolTable"],"handle":"2","recs":[["0","LTYPE","5","24","330","2","100","AcDbSymbolTableRecord","100","AcDbLinetypeTableRecord","2","ByBlock","70","0","3","","72","65","73","0","40","0.0"],["0","LTYPE","5","25","330","2","100","AcDbSymbolTableRecord","100","AcDbLinetypeTableRecord","2","ByLayer","70","0","3","","72","65","73","0","40","0.0"],["0","LTYPE","5","26","330","2","100","AcDbSymbolTableRecord","100","AcDbLinetypeTableRecord","2","Continuous","70","0","3","","72","65","73","0","40","0.0"]]},"LAYER":{"head":["5","1","330","0","100","AcDbSymbolTable"],"handle":"1","recs":[["0","LAYER","5","27","330","1","100","AcDbSymbolTableRecord","100","AcDbLayerTableRecord","2","0","70","0","62","7","6","Continuous","370","-3","390","13"],["0","LAYER","5","28","330","1","100","AcDbSymbolTableRecord","100","AcDbLayerTableRecord","2","Defpoints","70","0","62","7","6","Continuous","290","0","370","-3","390","13"]]},"STYLE":{"head":["5","5","330","0","100","AcDbSymbolTable"],"handle":"5","recs":[["0","STYLE","5","29","330","5","100","AcDbSymbolTableRecord","100","AcDbTextStyleTableRecord","2","Standard","70","0","40","0.0","41","1.0","50","0.0","71","0","42","2.5","3","txt","4",""]]},"VIEW":{"head":["5","7","330","0","100","AcDbSymbolTable"],"handle":"7","recs":[]},"UCS":{"head":["5","6","330","0","100","AcDbSymbolTable"],"handle":"6","recs":[]},"APPID":{"head":["5","3","330","0","100","AcDbSymbolTable"],"handle":"3","recs":[["0","APPID","5","2A","330","3","100","AcDbSymbolTableRecord","100","AcDbRegAppTableRecord","2","ACAD","70","0"],["0","APPID","5","2F","330","3","100","AcDbSymbolTableRecord","100","AcDbRegAppTableRecord","2","HATCHBACKGROUNDCOLOR","70","0"],["0","APPID","5","30","330","3","100","AcDbSymbolTableRecord","100","AcDbRegAppTableRecord","2","EZDXF","70","0"]]},"DIMSTYLE":{"head":["5","4","330","0","100","AcDbSymbolTable","100","AcDbDimStyleTable"],"handle":"4","recs":[["0","DIMSTYLE","105","2B","330","4","100","AcDbSymbolTableRecord","100","AcDbDimStyleTableRecord","2","Standard","70","0","3","","4","","40","1.0","41","2.5","42","0.625","43","3.75","44","1.25","45","0.0","46","0.0","47","0.0","48","0.0","140","2.5","141","2.5","142","0.0","143","0.03937007874","144","1.0","145","0.0","146","1.0","147","0.625","148","0.0","71","0","72","0","73","0","74","0","75","0","76","0","77","1","78","8","79","3","170","0","171","3","172","1","173","0","174","0","175","0","176","0","177","0","178","0","179","2","271","2","272","2","273","2","274","3","275","0","276","0","277","2","278","44","279","0","280","0","281","0","282","0","283","0","284","8","285","0","286","0","288","0","289","3","371","-2","372","-2"]]},"BLOCK_RECORD":{"head":["5","9","330","0","100","AcDbSymbolTable"],"handle":"9","recs":[["0","BLOCK_RECORD","5","17","330","9","100","AcDbSymbolTableRecord","100","AcDbBlockTableRecord","2","*Model_Space","340","1A"],["0","BLOCK_RECORD","5","1B","330","9","100","AcDbSymbolTableRecord","100","AcDbBlockTableRecord","2","*Paper_Space","340","1E"]]}},"objects":[["0","DICTIONARY","5","A","330","0","100","AcDbDictionary","281","1","3","ACAD_COLOR","350","B","3","ACAD_GROUP","350","C","3","ACAD_LAYOUT","350","D","3","ACAD_MATERIAL","350","E","3","ACAD_MLEADERSTYLE","350","F","3","ACAD_MLINESTYLE","350","10","3","ACAD_PLOTSETTINGS","350","11","3","ACAD_PLOTSTYLENAME","350","12","3","ACAD_SCALELIST","350","14","3","ACAD_TABLESTYLE","350","15","3","ACAD_VISUALSTYLE","350","16","3","EZDXF_META","350","2D"],["0","DICTIONARY","5","B","330","A","100","AcDbDictionary","281","1"],["0","DICTIONARY","5","C","330","A","100","AcDbDictionary","281","1"],["0","DICTIONARY","5","E","330","A","100","AcDbDictionary","281","1","3","ByBlock","350","1F","3","ByLayer","350","20","3","Global","350","21"],["0","DICTIONARY","5","F","330","A","100","AcDbDictionary","281","1","3","Standard","350","2C"],["0","DICTIONARY","5","10","330","A","100","AcDbDictionary","281","1","3","Standard","350","22"],["0","DICTIONARY","5","11","330","A","100","AcDbDictionary","281","1"],["0","ACDBDICTIONARYWDFLT","5","12","330","A","100","AcDbDictionary","281","1","3","Normal","350","13","100","AcDbDictionaryWithDefault","340","13"],["0","ACDBPLACEHOLDER","5","13","330","12"],["0","DICTIONARY","5","14","330","A","100","AcDbDictionary","281","1"],["0","DICTIONARY","5","15","330","A","100","AcDbDictionary","281","1"],["0","DICTIONARY","5","16","330","A","100","AcDbDictionary","281","1"],["0","MATERIAL","5","1F","102","{ACAD_REACTORS","330","E","102","}","330","E","100","AcDbMaterial","1","ByBlock","2","","70","0","40","1.0","71","1","41","1.0","91","-1023410177","42","1.0","72","1","3","","73","1","74","1","75","1","44","0.5","73","0","45","1.0","46","1.0","77","1","4","","78","1","79","1","170","1","48","1.0","171","1","6","","172","1","173","1","174","1","140","1.0","141","1.0","175","1","7","","176","1","177","1","178","1","143","1.0","179","1","8","","270","1","271","1","272","1","145","1.0","146","1.0","273","1","9","","274","1","275","1","276","1","42","1.0","72","1","3","","73","1","74","1","75","1","94","63"],["0","MATERIAL","5","20","102","{ACAD_REACTORS","330","E","102","}","330","E","100","AcDbMaterial","1","ByLayer","2","","70","0","40","1.0","71","1","41","1.0","91","-1023410177","42","1.0","72","1","3","","73","1","74","1","75","1","44","0.5","73","0","45","1.0","46","1.0","77","1","4","","78","1","79","1","170","1","48","1.0","171","1","6","","172","1","173","1","174","1","140","1.0","141","1.0","175","1","7","","176","1","177","1","178","1","143","1.0","179","1","8","","270","1","271","1","272","1","145","1.0","146","1.0","273","1","9","","274","1","275","1","276","1","42","1.0","72","1","3","","73","1","74","1","75","1","94","63"],["0","MATERIAL","5","21","102","{ACAD_REACTORS","330","E","102","}","330","E","100","AcDbMaterial","1","Global","2","","70","0","40","1.0","71","1","41","1.0","91","-1023410177","42","1.0","72","1","3","","73","1","74","1","75","1","44","0.5","73","0","45","1.0","46","1.0","77","1","4","","78","1","79","1","170","1","48","1.0","171","1","6","","172","1","173","1","174","1","140","1.0","141","1.0","175","1","7","","176","1","177","1","178","1","143","1.0","179","1","8","","270","1","271","1","272","1","145","1.0","146","1.0","273","1","9","","274","1","275","1","276","1","42","1.0","72","1","3","","73","1","74","1","75","1","94","63"],["0","MLINESTYLE","5","22","102","{ACAD_REACTORS","330","10","102","}","330","10","100","AcDbMlineStyle","2","Standard","70","0","3","","62","256","51","90.0","52","90.0","71","2","49","0.5","62","256","6","BYLAYER","49","-0.5","62","256","6","BYLAYER"],["0","MLEADERSTYLE","5","2C","102","{ACAD_REACTORS","330","F","102","}","330","F","100","AcDbMLeaderStyle","179","2","170","2","171","1","172","0","90","2","40","0.0","41","0.0","173","1","91","-1056964608","92","-2","290","1","42","2.0","291","1","43","8.0","3","Standard","44","4.0","300","","342","29","174","1","175","1","176","0","178","1","93","-1056964608","45","4.0","292","0","297","0","46","4.0","94","-1056964608","47","1.0","49","1.0","140","1.0","294","1","141","0.0","177","0","142","1.0","295","0","296","0","143","3.75","271","0","272","9","273","9"],["0","DICTIONARY","5","2D","330","A","100","AcDbDictionary","280","1","281","1","3","CREATED_BY_EZDXF","350","2E","3","WRITTEN_BY_EZDXF","350","31"],["0","DICTIONARYVAR","5","2E","330","2D","100","DictionaryVariables","280","0","1","1.4.5 @ 2026-11-16T21:35:11.549412+00:00"],["0","DICTIONARYVAR","5","31","330","2D","100","DictionaryVariables","280","0","1","1.4.5 @ 2026-11-16T21:35:11.549925+00:00"]],"layoutDictHandle":"D","rootHandle":"A","seed":"32"};
 const DXF_LAYERS = {
   "0":[7,"CONTINUOUS"], MURO:[7,"CONTINUOUS"], LOSA:[9,"CONTINUOUS"], COLUMNA:[8,"CONTINUOUS"], HATCH:[8,"CONTINUOUS"],
   EJES:[1,"CENTER"], OCULTA:[8,"HIDDEN"], AGUA:[5,"CONTINUOUS"], VERTEDERO:[3,"CONTINUOUS"], PUENTE:[4,"CONTINUOUS"],
@@ -1222,13 +1223,11 @@ function writeDXF(P,F,L3,C3,info){
       .replace(/[\r\n\t]+/g," ").replace(/[^\x20-\xFF]/g,"?");
   const mkAdd=arr=>(c,v)=>{ arr.push(String(c),String(v)); };
 
-  // ---------- manejadores fijos ----------
-  const hT={}; ["VPORT","LTYPE","LAYER","STYLE","VIEW","UCS","APPID","DIMSTYLE","BLOCK_RECORD"].forEach(k=>hT[k]=H());
+  // ---------- manejadores ----------
   const hBrModel=H(), hBrPaper=[H(),H(),H()];
   const hLayModel=H(), hLay=[H(),H(),H()];
-  const hRoot=H(), hLayDict=H(), hGroupDict=H();
+  const hRoot=DXF_TPL.rootHandle, hLayDict=DXF_TPL.layoutDictHandle;
   const brNames=["*Model_Space","*Paper_Space","*Paper_Space0","*Paper_Space1"];
-
   // ---------- capas ----------
   const extraLayers=["MARCO","MEMB_LINEA","MEMB_ETIQ","MEMB_TEXTO","MARCO_VISTA","LOGO","VIEWPORTS","TIT3D"];
   const used=new Set(["0",...extraLayers]);
@@ -1236,6 +1235,7 @@ function writeDXF(P,F,L3,C3,info){
   P.forEach(p=>used.add(p[p[0]==="L"?5:p[0]==="C"?4:5]));
   F.forEach(f=>used.add(f[0])); L3.forEach(l=>used.add(l[6])); C3.forEach(c=>used.add(c[4]));
   const layerH={}; used.forEach(nm=>layerH[nm]=H());
+  { const r0=DXF_TPL.tables.LAYER.recs.find(r=>r[r.indexOf("2")+1]==="0"); if(r0) layerH["0"]=r0[r0.indexOf("5")+1]; }   // capa 0: manejador de la plantilla
 
   // ---------- emisor de entidades ----------
   function Em(arr,owner,paper){
@@ -1264,7 +1264,7 @@ function writeDXF(P,F,L3,C3,info){
         add(10,n(o.cx)); add(20,n(o.cy)); add(30,0); add(40,n(o.w)); add(41,n(o.h)); add(68,o.status); add(69,o.id);
         add(12,n(o.vcx)); add(22,n(o.vcy)); add(13,0); add(23,0); add(14,10); add(24,10); add(15,10); add(25,10);
         add(16,n(o.dir[0])); add(26,n(o.dir[1])); add(36,n(o.dir[2])); add(17,0); add(27,0); add(37,0);
-        add(42,50); add(43,0); add(44,0); add(45,n(o.vh)); add(50,0); add(51,0); add(72,1000); add(90,o.flags);
+        add(42,50); add(43,0); add(44,0); add(45,n(o.vh)); add(50,0); add(51,0); add(72,100); add(90,o.flags);
         add(1,""); if(o.frozen) o.frozen.forEach(h=>add(331,h));
         add(281,0); if(o.shade) add(170,o.shade); add(71,0); add(74,0);
         add(110,0); add(120,0); add(130,0); add(111,1); add(121,0); add(131,0); add(112,0); add(122,1); add(132,0); add(79,0); add(146,0); }
@@ -1344,9 +1344,9 @@ function writeDXF(P,F,L3,C3,info){
     };
     const rh=hm/2;
     cell(xs[1],ym,cw[1],rh,"INSTITUCION / EMPRESA",M.inst,3.4*tk);
-    cell(xs[1],fy0,cw[1],rh,"PROYECTO",M.proyecto,3.0*tk);
+    cell(xs[1],fy0,cw[1],rh,"PROYECTO / UBICACION",[M.proyecto,M.ubicacion].filter(Boolean).join(" - "),3.0*tk);
     cell(xs[2],ym,cw[2],rh,"TITULO DEL PLANO",def.title,3.6*tk);
-    cell(xs[2],fy0,cw[2],rh,"UBICACION",M.ubicacion,3.2*tk);
+    cell(xs[2],fy0,cw[2],rh,"INTEGRANTES",String(M.integrantes||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean).join("; "),3.0*tk);
     cell(xs[3],ym,wd,rh,"DIBUJO",M.dibujo,3.0*tk);
     cell(xs[3]+wd,ym,wd,rh,"REVISO",M.reviso,3.0*tk);
     cell(xs[3]+2*wd,ym,wd,rh,"APROBO",M.aprobo,3.0*tk);
@@ -1391,10 +1391,10 @@ function writeDXF(P,F,L3,C3,info){
     const escala="1:"+den;
     membrete(em,li,def,escala);
     // viewport principal del papel (id 1)
-    em.viewport({cx:W/2,cy:HH/2,w:W,h:HH,status:1,id:1,vcx:W/2,vcy:HH/2,dir:[0,0,1],vh:HH,flags:32800});
+    em.viewport({cx:W/2,cy:HH/2,w:W,h:HH,status:1,id:1,vcx:W/2,vcy:HH/2,dir:[0,0,1],vh:HH,flags:557088});
     vs.forEach((v,i)=>{
       const r=rects[i], b=v.box;
-      const o={cx:r.x+r.w/2,cy:r.y+r.h/2,w:r.w,h:r.h,status:2+i,id:2+i,flags:32864};
+      const o={cx:r.x+r.w/2,cy:r.y+r.h/2,w:r.w,h:r.h,status:2+i,id:2+i,flags:0};
       o.vcx=(b.x0+b.x1)/2; o.vcy=(b.y0+b.y1)/2; o.dir=[0,0,1]; o.vh=r.h*den/1000;
       em.viewport(o);
       em.poly("MARCO_VISTA",[[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]],true);
@@ -1405,74 +1405,60 @@ function writeDXF(P,F,L3,C3,info){
   // el manejador del viewport principal de cada layout se recupera buscando su 1.ª entidad VIEWPORT
   const firstVp=arr=>{ for(let i=0;i<arr.length;i++){ if(arr[i]==="VIEWPORT"&&arr[i-1]==="0"){ return arr[i+3]; } } return "0"; };
 
-  // ---------- HEADER ----------
-  const vpHeight=Math.max(mxy-mny,(mxx-mnx)/1.5)*1.05, vcx=(mnx+mxx)/2, vcy=(mny+mxy)/2;
-  aH(0,"SECTION"); aH(2,"HEADER");
-  aH(9,"$ACADVER"); aH(1,"AC1015");
-  aH(9,"$HANDSEED"); aH(5,"@@HANDSEED@@");
-  aH(9,"$INSBASE"); aH(10,0); aH(20,0); aH(30,0);
-  aH(9,"$EXTMIN"); aH(10,n(mnx)); aH(20,n(mny)); aH(30,n(mnz));
-  aH(9,"$EXTMAX"); aH(10,n(mxx)); aH(20,n(mxy)); aH(30,n(mxz));
-  aH(9,"$LIMMIN"); aH(10,n(mnx)); aH(20,n(mny));
-  aH(9,"$LIMMAX"); aH(10,n(mxx)); aH(20,n(mxy));
-  aH(9,"$LTSCALE"); aH(40,1.0);
-  aH(9,"$TILEMODE"); aH(70,0);          // abre directamente en el layout «01 PLANTA»
-  aH(9,"$CTAB"); aH(1,LDEFS[0].name);
-  aH(9,"$UNITMODE"); aH(70,0);
-  aH(9,"$LUNITS"); aH(70,2);
-  aH(9,"$LUPREC"); aH(70,4);
-  aH(9,"$MEASUREMENT"); aH(70,1);
-  aH(9,"$INSUNITS"); aH(70,6);
-  aH(9,"$CLAYER"); aH(8,"0");
-  aH(9,"$PSLTSCALE"); aH(70,1);
-  aH(9,"$PEXTMIN"); aH(10,0); aH(20,0); aH(30,0);
-  aH(9,"$PEXTMAX"); aH(10,W); aH(20,HH); aH(30,0);
-  aH(9,"$PLIMMIN"); aH(10,0); aH(20,0);
-  aH(9,"$PLIMMAX"); aH(10,W); aH(20,HH);
-  aH(9,"$DWGCODEPAGE"); aH(3,"ANSI_1252");
-  aH(0,"ENDSEC");
-  aH(0,"SECTION"); aH(2,"CLASSES"); aH(0,"ENDSEC");
+  // ---------- ensamblado: estructura base tomada de un DXF R2000 que AutoCAD abre (plantilla) ----------
+  const TPL=DXF_TPL, TL=TPL.tables.LAYER.handle, TB=TPL.tables.BLOCK_RECORD.handle;
+  const pp=(arr,a)=>{ for(const x of a) arr.push(String(x)); };
+  const getc=(rec,code)=>{ for(let i=0;i<rec.length;i+=2) if(rec[i]===code) return rec[i+1]; };
+  const setc=(rec,code,val)=>{ for(let i=0;i<rec.length;i+=2) if(rec[i]===code){ rec[i+1]=String(val); return; } };
 
-  // ---------- TABLES ----------
+  // HEADER
+  const ov={
+    "$HANDSEED":[5,"@@HANDSEED@@"],
+    "$EXTMIN":[10,n(mnx),20,n(mny),30,n(mnz)], "$EXTMAX":[10,n(mxx),20,n(mxy),30,n(mxz)],
+    "$LIMMIN":[10,n(mnx),20,n(mny)], "$LIMMAX":[10,n(mxx),20,n(mxy)],
+    "$LTSCALE":[40,1], "$TILEMODE":[70,1], "$INSUNITS":[70,6], "$MEASUREMENT":[70,1],
+    "$PEXTMIN":[10,0,20,0,30,0], "$PEXTMAX":[10,W,20,HH,30,0], "$PLIMMIN":[10,0,20,0], "$PLIMMAX":[10,W,20,HH]
+  };
+  aH(0,"SECTION"); aH(2,"HEADER");
+  { const h=TPL.header; let i=0;
+    while(i<h.length){
+      if(h[i]==="9"){ let j=i+2; while(j<h.length&&h[j]!=="9") j+=2; const nm=h[i+1]; aH(9,nm); pp(hdr, ov[nm]||h.slice(i+2,j)); i=j; }
+      else i+=2;
+    } }
+  aH(0,"ENDSEC");
+  aH(0,"SECTION"); aH(2,"CLASSES"); pp(hdr,TPL.classes); aH(0,"ENDSEC");
+
+  // TABLES
+  const vpHeight=Math.max(mxy-mny,(mxx-mnx)/1.5)*1.05, vcx=(mnx+mxx)/2, vcy=(mny+mxy)/2;
+  const dynRecs={
+    VPORT:()=>{ const r=TPL.tables.VPORT.recs[0].slice(); setc(r,"12",n(vcx)); setc(r,"22",n(vcy)); setc(r,"40",n(vpHeight)); setc(r,"41",1.5); return [r]; },
+    LTYPE:()=>{
+      const rs=TPL.tables.LTYPE.recs.map(r=>r.slice());
+      [["HIDDEN","Hidden __ __ __",[0.2,-0.1]],["CENTER","Center ____ _ ____",[0.8,-0.15,0.15,-0.15]]].forEach(([nm,ds,pt])=>{
+        const r=[0,"LTYPE",5,H(),330,TPL.tables.LTYPE.handle,100,"AcDbSymbolTableRecord",100,"AcDbLinetypeTableRecord",2,nm,70,0,3,ds,72,65,73,pt.length,40,n(pt.reduce((a,b)=>a+Math.abs(b),0))];
+        pt.forEach(x=>{ r.push(49,n(x),74,0); }); rs.push(r.map(String));
+      });
+      return rs; },
+    LAYER:()=>{
+      const rs=[];
+      used.forEach(nm=>{ const [aci,lt,lw,noplot]=layerInfo(nm);
+        const r=[0,"LAYER",5,layerH[nm],330,TL,100,"AcDbSymbolTableRecord",100,"AcDbLayerTableRecord",2,nm,70,0,62,aci,6,lt==="CONTINUOUS"?"Continuous":lt];
+        if(noplot) r.push(290,0); r.push(370,lw||-3,390,"13"); rs.push(r.map(String)); });
+      TPL.tables.LAYER.recs.filter(r=>getc(r,"2")!=="0").forEach(r=>rs.push(r.slice()));   // Defpoints
+      return rs; },
+    BLOCK_RECORD:()=>[hBrModel,...hBrPaper].map((h,i)=>[0,"BLOCK_RECORD",5,h,330,TB,100,"AcDbSymbolTableRecord",100,"AcDbBlockTableRecord",2,brNames[i],340,i===0?hLayModel:hLay[i-1]].map(String))
+  };
   aT(0,"SECTION"); aT(2,"TABLES");
-  const tableHead=(name,count,extra)=>{ aT(0,"TABLE"); aT(2,name); aT(5,hT[name]); aT(330,0); aT(100,"AcDbSymbolTable"); aT(70,count); if(extra) extra(); };
-  const rec=(type,name,sub,handleCode=5)=>{ aT(0,type); aT(handleCode,H()); aT(330,hT[type]); aT(100,"AcDbSymbolTableRecord"); aT(100,sub); aT(2,name); };
-  tableHead("VPORT",1);
-  rec("VPORT","*ACTIVE","AcDbViewportTableRecord"); aT(70,0);
-  aT(10,0); aT(20,0); aT(11,1); aT(21,1); aT(12,n(vcx)); aT(22,n(vcy)); aT(13,0); aT(23,0); aT(14,10); aT(24,10); aT(15,10); aT(25,10);
-  aT(16,0); aT(26,0); aT(36,1); aT(17,0); aT(27,0); aT(37,0); aT(40,n(vpHeight)); aT(41,1.5); aT(42,50); aT(43,0); aT(44,0); aT(50,0); aT(51,0);
-  aT(71,0); aT(72,100); aT(73,1); aT(74,3); aT(75,0); aT(76,0); aT(77,0); aT(78,0);
-  aT(0,"ENDTAB");
-  const lts=[["BYBLOCK","",[]],["BYLAYER","",[]],["CONTINUOUS","Solid line",[]],["HIDDEN","Hidden __ __ __",[0.2,-0.1]],["CENTER","Center ____ _ ____",[0.8,-0.15,0.15,-0.15]]];
-  tableHead("LTYPE",lts.length);
-  lts.forEach(([nm,ds,pt])=>{ rec("LTYPE",nm,"AcDbLinetypeTableRecord"); aT(70,0); aT(3,ds); aT(72,65); aT(73,pt.length); aT(40,n(pt.reduce((a,b)=>a+Math.abs(b),0)));
-    pt.forEach(x=>{ aT(49,n(x)); aT(74,0); }); });
-  aT(0,"ENDTAB");
-  tableHead("LAYER",used.size);
-  used.forEach(nm=>{ const [aci,lt,lw,noplot]=layerInfo(nm);
-    aT(0,"LAYER"); aT(5,layerH[nm]); aT(330,hT.LAYER); aT(100,"AcDbSymbolTableRecord"); aT(100,"AcDbLayerTableRecord"); aT(2,nm); aT(70,0); aT(62,aci); aT(6,lt);
-    if(noplot) aT(290,0); if(lw) aT(370,lw); });
-  aT(0,"ENDTAB");
-  tableHead("STYLE",1);
-  rec("STYLE","STANDARD","AcDbTextStyleTableRecord"); aT(70,0); aT(40,0); aT(41,1); aT(50,0); aT(71,0); aT(42,0.2); aT(3,"txt"); aT(4,"");
-  aT(0,"ENDTAB");
-  tableHead("VIEW",0); aT(0,"ENDTAB");
-  tableHead("UCS",0); aT(0,"ENDTAB");
-  tableHead("APPID",1);
-  rec("APPID","ACAD","AcDbRegAppTableRecord"); aT(70,0);
-  aT(0,"ENDTAB");
-  tableHead("DIMSTYLE",1,()=>aT(100,"AcDbDimStyleTable"));
-  rec("DIMSTYLE","STANDARD","AcDbDimStyleTableRecord",105); aT(70,0);
-  aT(0,"ENDTAB");
-  tableHead("BLOCK_RECORD",4);
-  [hBrModel,...hBrPaper].forEach((h,i)=>{
-    aT(0,"BLOCK_RECORD"); aT(5,h); aT(330,hT.BLOCK_RECORD); aT(100,"AcDbSymbolTableRecord"); aT(100,"AcDbBlockTableRecord"); aT(2,brNames[i]);
-    aT(340,i===0?hLayModel:hLay[i-1]);
-  });
-  aT(0,"ENDTAB");
+  for(const name of Object.keys(TPL.tables)){
+    const t=TPL.tables[name], recs=dynRecs[name]?dynRecs[name]():t.recs;
+    aT(0,"TABLE"); aT(2,name);
+    for(let i=0;i<t.head.length;i+=2){ aT(t.head[i],t.head[i+1]); if(t.head[i]==="100"&&t.head[i+1]==="AcDbSymbolTable") aT(70,recs.length); }
+    recs.forEach(r=>pp(tbl,r));
+    aT(0,"ENDTAB");
+  }
   aT(0,"ENDSEC");
 
-  // ---------- BLOCKS ----------
+  // BLOCKS
   aB(0,"SECTION"); aB(2,"BLOCKS");
   [hBrModel,...hBrPaper].forEach((h,i)=>{
     const paper=i>0, nm=brNames[i];
@@ -1483,31 +1469,29 @@ function writeDXF(P,F,L3,C3,info){
   });
   aB(0,"ENDSEC");
 
-  // ---------- OBJECTS ----------
+  // OBJECTS: objetos de la plantilla + diccionario de layouts + LAYOUT
   aO(0,"SECTION"); aO(2,"OBJECTS");
-  aO(0,"DICTIONARY"); aO(5,hRoot); aO(330,0); aO(100,"AcDbDictionary"); aO(281,1); aO(3,"ACAD_GROUP"); aO(350,hGroupDict); aO(3,"ACAD_LAYOUT"); aO(350,hLayDict);
-  aO(0,"DICTIONARY"); aO(5,hGroupDict); aO(102,"{ACAD_REACTORS"); aO(330,hRoot); aO(102,"}"); aO(330,hRoot); aO(100,"AcDbDictionary"); aO(281,1);
-  aO(0,"DICTIONARY"); aO(5,hLayDict); aO(102,"{ACAD_REACTORS"); aO(330,hRoot); aO(102,"}"); aO(330,hRoot); aO(100,"AcDbDictionary"); aO(281,1);
+  TPL.objects.forEach(o=>pp(obj,o));
+  aO(0,"DICTIONARY"); aO(5,hLayDict); aO(330,hRoot); aO(100,"AcDbDictionary"); aO(281,1);
   aO(3,"Model"); aO(350,hLayModel); LDEFS.forEach((d,i)=>{ aO(3,d.name); aO(350,hLay[i]); });
-  const layoutObj=(h,name,isModel,tab,brH,vpH,paperName)=>{
-    aO(0,"LAYOUT"); aO(5,h); aO(102,"{ACAD_REACTORS"); aO(330,hLayDict); aO(102,"}"); aO(330,hLayDict);
-    aO(100,"AcDbPlotSettings"); aO(1,""); aO(2,"DWG To PDF.pc3"); aO(4,paperName); aO(6,"");
+  const layoutObj=(h,name,isModel,tab,brH,vpH)=>{
+    aO(0,"LAYOUT"); aO(5,h); aO(330,hLayDict);
+    aO(100,"AcDbPlotSettings"); aO(1,""); aO(2,"DWG To PDF.pc3"); aO(4,pap.name); aO(6,"");
     aO(40,0); aO(41,0); aO(42,0); aO(43,0); aO(44,W); aO(45,HH); aO(46,0); aO(47,0); aO(48,0); aO(49,0);
     aO(140,0); aO(141,0); aO(142,1); aO(143,1);
-    aO(70,isModel?1024:688); aO(72,1); aO(73,0); aO(74,5); aO(7,""); aO(75,16); aO(76,0); aO(77,2); aO(78,300); aO(147,1); aO(148,0); aO(149,0);
+    aO(70,isModel?1024:0); aO(72,1); aO(73,0); aO(74,5); aO(7,""); aO(75,16); aO(76,0); aO(77,2); aO(78,300); aO(147,1); aO(148,0); aO(149,0);
     aO(100,"AcDbLayout"); aO(1,name); aO(70,1); aO(71,tab);
-    aO(10,0); aO(20,0); aO(11,isModel?12:W); aO(21,isModel?9:HH); aO(12,0); aO(22,0); aO(32,0);
-    aO(14,isModel?n(mnx):0); aO(24,isModel?n(mny):0); aO(34,0); aO(15,isModel?n(mxx):W); aO(25,isModel?n(mxy):HH); aO(35,0);
-    aO(146,0); aO(13,0); aO(23,0); aO(33,0); aO(16,1); aO(26,0); aO(36,0); aO(17,0); aO(27,1); aO(37,0); aO(76,0);
+    aO(10,0); aO(20,0); aO(11,W); aO(21,HH); aO(12,0); aO(22,0); aO(32,0);
+    aO(14,"1e+20"); aO(24,"1e+20"); aO(34,"1e+20"); aO(15,"-1e+20"); aO(25,"-1e+20"); aO(35,"-1e+20");
+    aO(146,0); aO(13,0); aO(23,0); aO(33,0); aO(16,1); aO(26,0); aO(36,0); aO(17,0); aO(27,1); aO(37,0); aO(76,1);
     aO(330,brH); if(vpH) aO(331,vpH);
   };
-  layoutObj(hLayModel,"Model",true,0,hBrModel,null,pap.name);
-  LDEFS.forEach((d,i)=>layoutObj(hLay[i],d.name,false,i+1,hBrPaper[i],firstVp(i===0?ent:paperEnt[i]),pap.name));
+  layoutObj(hLayModel,"Model",true,0,hBrModel,null);
+  LDEFS.forEach((d,i)=>layoutObj(hLay[i],d.name,false,i+1,hBrPaper[i],firstVp(i===0?ent:paperEnt[i])));
   aO(0,"ENDSEC");
 
-  const body=[...hdr,...tbl,...blk];
   const entSec=["0","SECTION","2","ENTITIES",...ent,"0","ENDSEC"];
-  const out=[...body,...entSec,...obj,"0","EOF"];
+  const out=[...hdr,...tbl,...blk,...entSec,...obj,"0","EOF"];
   const seed=hs.toString(16).toUpperCase();
   return out.map(v=>v==="@@HANDSEED@@"?seed:v).join("\r\n")+"\r\n";
 }
@@ -1535,7 +1519,7 @@ const FIELD_LABELS={inst:"Institución / empresa",proyecto:"Proyecto",ubicacion:
   aprobo:"Aprobó",fecha:"Fecha",escuela:"Facultad / escuela",curso:"Curso",titulo:"Título del trabajo (opcional)",docente:"Docente",integrantes:"Integrantes (uno por línea)"};
 const DLG_SETS={
   dxf:{title:"Datos del membrete (opcional)",note:"Se imprimen en el membrete de cada layout del plano (planta, frontal y perfil). Puedes dejar campos vacíos u omitirlos todos.",
-       keys:["inst","proyecto","ubicacion","codigo","dibujo","reviso","aprobo","fecha"],paper:true,ok:"Exportar AutoCAD"},
+       keys:["inst","proyecto","ubicacion","codigo","integrantes","dibujo","reviso","aprobo","fecha"],paper:true,ok:"Exportar AutoCAD"},
   pdf:{title:"Datos de la carátula (opcional)",note:"Se usan en la carátula (primera página) de la memoria de cálculo en PDF. Puedes dejar campos vacíos u omitirlos todos.",
        keys:["inst","escuela","curso","titulo","integrantes","docente","ubicacion","fecha"],paper:false,ok:"Generar PDF"}
 };
