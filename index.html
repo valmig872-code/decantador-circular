@@ -94,6 +94,12 @@ tr.assump td:first-child{border-left:4px solid #e0c64c}
 .logorow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #mb-logoprev{max-height:44px;max-width:120px;border:1px solid var(--line);border-radius:4px;background:#fff}
 .btn.pri{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:650}
+dialog#dlg{border:1px solid var(--line);border-radius:12px;padding:18px 20px;width:min(720px,94vw);max-height:92vh;overflow:auto;color:var(--ink)}
+dialog#dlg::backdrop{background:rgba(20,30,40,.45)}
+dialog#dlg h3{margin:0 0 4px;color:var(--brand);font-size:16px}
+dialog#dlg p.note{margin:0 0 12px;color:var(--muted);font-size:12.5px}
+.mbf textarea{width:100%;min-height:64px;padding:7px 9px;border:1px solid #9ebad4;border-radius:6px;font:inherit;color:var(--ink);resize:vertical}
+.dlgbtns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
 footer{padding:10px 18px;font-size:11.5px;color:var(--muted);background:#e9eef2;border-top:1px solid var(--line)}
 @media (max-width:860px){
   main{flex-direction:column}
@@ -119,7 +125,6 @@ footer{padding:10px 18px;font-size:11.5px;color:var(--muted);background:#e9eef2;
 <nav class="tabs" role="tablist">
   <button role="tab" id="t1" aria-selected="true" data-tab="modelado">Modelado 3D</button>
   <button role="tab" id="t2" aria-selected="false" data-tab="memoria">Memoria de cálculo</button>
-  <button role="tab" id="t3" aria-selected="false" data-tab="plano">Planos y membrete</button>
 </nav>
 <main>
   <section class="tab active" id="tab-modelado">
@@ -154,34 +159,21 @@ footer{padding:10px 18px;font-size:11.5px;color:var(--muted);background:#e9eef2;
   <section class="tab" id="tab-memoria">
     <div id="memo"></div>
   </section>
-  <section class="tab" id="tab-plano">
-    <div id="planobox">
-      <h3>Hoja y membrete</h3>
-      <p class="note">Estos datos se usan en el layout del DXF (3 láminas: planta, cortes e isométrica) y en el encabezado y pie de la memoria en PDF. Se guardan en este navegador.</p>
-      <div class="mbgrid">
-        <div class="mbf"><label for="mb-papel">Tamaño de hoja (ISO, sin márgenes: full bleed, apaisada)</label>
-          <select id="mb-papel"><option value="A1">A1 · 841 × 594 mm</option><option value="A2">A2 · 594 × 420 mm</option><option value="A3" selected>A3 · 420 × 297 mm</option></select></div>
-        <div class="mbf"><label for="mb-logo">Logo (PNG o JPG)</label>
-          <div class="logorow"><input type="file" id="mb-logo" accept="image/png,image/jpeg,image/gif,image/webp"><img id="mb-logoprev" alt="" hidden><button class="btn" id="mb-logoquit" type="button" hidden>Quitar logo</button></div></div>
-        <div class="mbf"><label for="mb-inst">Institución / empresa</label><input type="text" id="mb-inst" data-mb="inst" maxlength="80"></div>
-        <div class="mbf"><label for="mb-proyecto">Proyecto</label><input type="text" id="mb-proyecto" data-mb="proyecto" maxlength="90"></div>
-        <div class="mbf"><label for="mb-ubicacion">Ubicación</label><input type="text" id="mb-ubicacion" data-mb="ubicacion" maxlength="80"></div>
-        <div class="mbf"><label for="mb-codigo">Código de lámina</label><input type="text" id="mb-codigo" data-mb="codigo" maxlength="20"></div>
-        <div class="mbf"><label for="mb-dibujo">Dibujó</label><input type="text" id="mb-dibujo" data-mb="dibujo" maxlength="40"></div>
-        <div class="mbf"><label for="mb-reviso">Revisó</label><input type="text" id="mb-reviso" data-mb="reviso" maxlength="40"></div>
-        <div class="mbf"><label for="mb-aprobo">Aprobó</label><input type="text" id="mb-aprobo" data-mb="aprobo" maxlength="40"></div>
-        <div class="mbf"><label for="mb-fecha">Fecha</label><input type="text" id="mb-fecha" data-mb="fecha" maxlength="20"></div>
-      </div>
-      <div class="toolbar" style="margin-top:16px">
-        <button class="btn pri" id="btn-dxf2" type="button">⬇ Exportar AutoCAD (.dxf) con layouts</button>
-        <button class="btn pri" id="btn-pdf2" type="button">⬇ Memoria de cálculo en PDF</button>
-      </div>
-      <p class="note">DXF: el espacio modelo conserva la planta, los cortes y el modelo 3D en metros; los layouts «01 PLANTA», «02 CORTES» e «03 ISOMETRICA» traen hoja, viewports a escala y membrete. PDF: se abre el cuadro de impresión; elija «Guardar como PDF».</p>
-      <div id="mbmsg" class="legendline"></div>
-    </div>
-  </section>
+  
 </main>
-<footer>
+<dialog id="dlg">
+  <form id="dlgform" onsubmit="return false">
+    <h3 id="dlg-title"></h3>
+    <p class="note" id="dlg-note"></p>
+    <div class="mbgrid" id="dlg-fields"></div>
+    <div id="dlg-msg" class="legendline"></div>
+    <div class="dlgbtns">
+      <button type="button" class="btn" id="dlg-cancel">Cancelar</button>
+      <button type="button" class="btn" id="dlg-skip">Omitir datos y exportar</button>
+      <button type="button" class="btn pri" id="dlg-ok">Exportar</button>
+    </div>
+  </form>
+</dialog><footer>
   Integrantes: Edith Jhakelin Luque Torres · Berenise Yesmit Surco Arbues · Curso: Tratamiento de Aguas Residuales · Docente: Juan Eduardo Vigo Rivera.
   Las filas con borde amarillo son supuestos de diseño del grupo (no vienen del libro). Valores calculados con π = 3,1416, igual que el libro.
 </footer>
@@ -833,7 +825,7 @@ function showTab(name){
   if(location.hash!=="#"+name) { try{ history.replaceState(null,"","#"+name);}catch(e){} }
 }
 document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
-window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(h==="modelado"||h==="memoria"||h==="plano") showTab(h); });
+window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(h==="modelado"||h==="memoria") showTab(h); });
 document.getElementById("m-prim").onclick=()=>setMode("primario");
 document.getElementById("m-sec").onclick=()=>setMode("secundario");
 document.querySelectorAll("#viewbtns button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.v)));
@@ -844,7 +836,7 @@ document.getElementById("legend").innerHTML=LEGEND.map(([n,c])=>`<span class="sw
 initGL();
 renderInputsSide(); bindInputs(document.getElementById("inputsA"));
 refresh();
-{ const h=location.hash.slice(1); if(h==="memoria"||h==="modelado"||h==="plano") showTab(h); }
+{ const h=location.hash.slice(1); if(h==="memoria"||h==="modelado") showTab(h); }
 /* =========================================================
    EXPORTAR A AUTOCAD (DXF R12, 1 unidad = 1 m)
    Planta, corte frontal, corte de perfil y modelo 3D
@@ -1046,6 +1038,7 @@ function buildDXF(S, C){
   mk.prof[1]=P.length;
 
   // =============== CUADRO DE DATOS ===============
+  mk.cuadro=[P.length,0];
   {
     const bx=Xp-outW, by=Rext+3.0; let k=0;
     const li=(s,h=0.35,l="TEXTO")=>{ T(bx,by-0.6*k,h,s,l,"l"); k++; };
@@ -1060,6 +1053,8 @@ function buildDXF(S, C){
     li(`Puente: ${C.puente}`);
     li(`Escala: 1 unidad de dibujo = 1 metro. Use el comando MEDIR / DIST.`,0.30,"TEXTO");
   }
+
+  mk.cuadro[1]=P.length;
 
   // =============== MODELO 3D (a la derecha, mismas medidas) ===============
   const f3=(layer,a,b,c,d)=>F.push(["3D_"+layer,a,b,c,d||c]);
@@ -1155,17 +1150,26 @@ const PAPER = {
   A2:{w:594,h:420,tk:1.25,name:"ISO_full_bleed_A2_(594.00_x_420.00_MM)"},
   A3:{w:420,h:297,tk:1,name:"ISO_full_bleed_A3_(420.00_x_297.00_MM)"}
 };
-const DENS=[10,20,25,50,75,100,125,150,200,250,300,400,500,750,1000,1500,2000,5000];
+const DENS=[10,20,25,50,75,100,125,150,175,200,250,300,400,500,750,1000,1500,2000,5000];
 
 /* ---------- datos de membrete (se guardan en el navegador) ---------- */
 const MB_KEY="decantador_membrete_v1";
 const MB_DEF={papel:"A3",inst:"UPeU - E.P. Ingeniería Ambiental",proyecto:"Decantadores circulares - Tratamiento de Aguas Residuales",
-  ubicacion:"",codigo:"DEC",dibujo:"",reviso:"",aprobo:"",fecha:"",logo:""};
+  ubicacion:"",codigo:"DEC",dibujo:"",reviso:"",aprobo:"",fecha:"",logo:"",
+  escuela:"Facultad de Ingeniería y Arquitectura",curso:"Tratamiento de Aguas Residuales",titulo:"",
+  integrantes:"Edith Jhakelin Luque Torres\nBerenise Yesmit Surco Arbues",docente:"Juan Eduardo Vigo Rivera"};
+const TEXT_KEYS=["inst","proyecto","ubicacion","codigo","dibujo","reviso","aprobo","fecha","escuela","curso","titulo","integrantes","docente"];
+let EXPORT_MB=null;      // datos usados por la exportación en curso
 let MB={...MB_DEF};
 try{ const j=JSON.parse(localStorage.getItem(MB_KEY)||"null"); if(j&&typeof j==="object") MB={...MB_DEF,...j}; }catch(e){}
 function saveMB(){ try{ localStorage.setItem(MB_KEY,JSON.stringify(MB)); }catch(e){} }
 function hoy(){ const d=new Date(); return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear(); }
-function getMB(){ return {...MB, papel:PAPER[MB.papel]?MB.papel:"A3", fecha:MB.fecha||hoy(), codigo:MB.codigo||"DEC"}; }
+function getMB(omit){
+  const b={...MB, papel:PAPER[MB.papel]?MB.papel:"A3"};
+  if(omit){ TEXT_KEYS.forEach(k=>b[k]=""); b.logo=""; }      // «omitir datos»: membrete en blanco, sin logo
+  else { b.fecha=b.fecha||hoy(); b.codigo=b.codigo||"DEC"; }
+  return b;
+}
 
 /* ---------- logo: se decodifica a píxeles para dibujarlo en el DXF ---------- */
 let LOGO=null, logoReady=Promise.resolve();
@@ -1211,7 +1215,7 @@ function logoRuns(){            // tramos horizontales del mismo color -> SOLID
    ESCRITURA DXF R2000 (AC1015): espacio modelo + 3 layouts
    ========================================================= */
 function writeDXF(P,F,L3,C3,info){
-  const M=getMB(), pap=PAPER[M.papel], tk=pap.tk, W=pap.w, HH=pap.h, {mk,nombre}=info;
+  const M=EXPORT_MB||getMB(), pap=PAPER[M.papel], tk=pap.tk, W=pap.w, HH=pap.h, {mk,nombre}=info;
   let hs=0x40; const H=()=>(hs++).toString(16).toUpperCase();
   const n=v=>(Math.abs(v)<1e-9?0:v).toFixed(5);
   const san=s=>String(s==null?"":s).replace(/[–—]/g,"-").replace(/[‘’]/g,"'").replace(/[“”]/g,'"')
@@ -1281,31 +1285,21 @@ function writeDXF(P,F,L3,C3,info){
     for(let i=r[0];i<r[1];i++){ const p=P[i];
       if(p[0]==="L"){ e(p[1],p[2]); e(p[3],p[4]); }
       else if(p[0]==="C"){ e(p[1]-p[3],p[2]-p[3]); e(p[1]+p[3],p[2]+p[3]); }
-      else { const x=p[1],y=p[2],h=p[3],w=tw(p[4],h),al=p[6],rot=p[7];
+      else { const x=p[1],y=p[2],h=p[3],w=String(p[4]).length*h*0.85,al=p[6],rot=p[7];
         if(rot===90){ e(x-h,y-(al==="c"?w/2:0)); e(x,y+(al==="c"?w/2:w)); }
         else { e(x-(al==="c"?w/2:0),y); e(x+(al==="c"?w/2:w),y+h); } }
     }
     const pd=0.5; return {x0:a-pd,y0:b-pd,x1:c+pd,y1:d+pd};
   }
-  const Dv=[1,-1,1], dl=Math.hypot(...Dv), Zc=Dv.map(v=>v/dl);
-  let Xa=[-Zc[1],Zc[0],0]; { const l=Math.hypot(Xa[0],Xa[1]); Xa=Xa.map(v=>v/l); }
-  const Ya=[Zc[1]*Xa[2]-Zc[2]*Xa[1], Zc[2]*Xa[0]-Zc[0]*Xa[2], Zc[0]*Xa[1]-Zc[1]*Xa[0]];
-  const pr=(x,y,z)=>[x*Xa[0]+y*Xa[1]+z*Xa[2], x*Ya[0]+y*Ya[1]+z*Ya[2]];
-  let iu0=1e9,iv0=1e9,iu1=-1e9,iv1=-1e9;
-  const ip=(x,y,z)=>{ const [u,v]=pr(x,y,z); iu0=Math.min(iu0,u); iu1=Math.max(iu1,u); iv0=Math.min(iv0,v); iv1=Math.max(iv1,v); };
-  F.forEach(f=>f.slice(1).forEach(q=>ip(q[0],q[1],q[2]))); L3.forEach(l=>{ip(l[0],l[1],l[2]);ip(l[3],l[4],l[5]);});
-  C3.forEach(c=>{ for(const sx of [-1,1]) for(const sy of [-1,1]) ip(c[0]+sx*c[3],c[1]+sy*c[3],c[2]); });
   const VIEWS={
-    plan:{kind:"plan",box:bbP(mk.plan)}, front:{kind:"plan",box:bbP(mk.front)}, prof:{kind:"plan",box:bbP(mk.prof)},
-    iso:{kind:"iso",box:{x0:iu0-1,y0:iv0-1,x1:iu1+1,y1:iv1+1},label:"VISTA ISOMETRICA - SIN ESCALA"}
+    plan:{box:bbP(mk.plan)}, front:{box:bbP(mk.front)}, prof:{box:bbP(mk.prof)}, cuadro:{box:bbP(mk.cuadro)}
   };
   Object.values(VIEWS).forEach(v=>{ v.wm=v.box.x1-v.box.x0; v.hm=v.box.y1-v.box.y0; });
   const LDEFS=[
-    {name:"01 PLANTA",title:`PLANTA - DECANTADOR ${nombre}`,views:["plan"]},
-    {name:"02 CORTES",title:`CORTES A-A Y B-B - DECANTADOR ${nombre}`,views:["front","prof"]},
-    {name:"03 ISOMETRICA",title:`ISOMETRICA - DECANTADOR ${nombre}`,views:["iso"]}
+    {name:"01 PLANTA",title:`PLANTA - DECANTADOR ${nombre}`,views:["plan","cuadro"]},
+    {name:"02 FRONTAL",title:`CORTE FRONTAL A-A - DECANTADOR ${nombre}`,views:["front"]},
+    {name:"03 PERFIL",title:`CORTE DE PERFIL B-B - DECANTADOR ${nombre}`,views:["prof"]}
   ];
-
   // ---------- geometría de la hoja ----------
   const fx0=20, fy0=10, fx1=W-10, fy1=HH-10, Wf=fx1-fx0, hm=40*tk, pad=5*tk, gap=8*tk, lab=8*tk;
   const ax=fx0+pad, ay=fy0+hm+pad, aw=Wf-2*pad, ah=(fy1-pad)-ay;
@@ -1358,9 +1352,9 @@ function writeDXF(P,F,L3,C3,info){
     cell(xs[3]+2*wd,ym,wd,rh,"APROBO",M.aprobo,3.0*tk);
     cell(xs[3],fy0,wd,rh,"FECHA",M.fecha,3.0*tk);
     cell(xs[3]+wd,fy0,wd,rh,"ESCALA",escala,3.4*tk);
-    cell(xs[3]+2*wd,fy0,wd,rh,"LAMINA",`${M.codigo}-${String(li+1).padStart(2,"0")}  (${li+1}/3)`,3.0*tk);
+    cell(xs[3]+2*wd,fy0,wd,rh,"LAMINA",`${M.codigo?M.codigo+"-":""}${String(li+1).padStart(2,"0")}  (${li+1}/3)`,3.0*tk);
     // logo
-    const runs=logoRuns();
+    const runs=M.logo?logoRuns():[];
     if(runs.length){
       const bx=fx0+2*tk, by=fy0+2*tk, bw=cw[0]-4*tk, bh=hm-4*tk;
       const cs=Math.min(bw/LOGO.w,bh/LOGO.h), ox=bx+(bw-LOGO.w*cs)/2, oy=by+(bh-LOGO.h*cs)/2;
@@ -1394,15 +1388,14 @@ function writeDXF(P,F,L3,C3,info){
     const arr=li===0?ent:paperEnt[li], em=Em(arr,hBrPaper[li],true);
     const vs=def.views.map(k=>VIEWS[k]);
     const {den,rects}=fit(vs);
-    const escala=def.views[0]==="iso"?"S/E":"1:"+den;
+    const escala="1:"+den;
     membrete(em,li,def,escala);
     // viewport principal del papel (id 1)
     em.viewport({cx:W/2,cy:HH/2,w:W,h:HH,status:1,id:1,vcx:W/2,vcy:HH/2,dir:[0,0,1],vh:HH,flags:32800});
     vs.forEach((v,i)=>{
       const r=rects[i], b=v.box;
       const o={cx:r.x+r.w/2,cy:r.y+r.h/2,w:r.w,h:r.h,status:2+i,id:2+i,flags:32864};
-      if(v.kind==="plan"){ o.vcx=(b.x0+b.x1)/2; o.vcy=(b.y0+b.y1)/2; o.dir=[0,0,1]; o.vh=r.h*den/1000; }
-      else { o.vcx=(b.x0+b.x1)/2; o.vcy=(b.y0+b.y1)/2; o.dir=Zc; o.vh=r.h*den/1000; o.frozen=[layerH["TIT3D"]]; o.shade=2; }
+      o.vcx=(b.x0+b.x1)/2; o.vcy=(b.y0+b.y1)/2; o.dir=[0,0,1]; o.vh=r.h*den/1000;
       em.viewport(o);
       em.poly("MARCO_VISTA",[[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]],true);
       if(v.label) em.text(r.x+r.w/2,r.y-lab*0.7,2.6*tk,v.label,"MEMB_TEXTO","c");
@@ -1423,7 +1416,8 @@ function writeDXF(P,F,L3,C3,info){
   aH(9,"$LIMMIN"); aH(10,n(mnx)); aH(20,n(mny));
   aH(9,"$LIMMAX"); aH(10,n(mxx)); aH(20,n(mxy));
   aH(9,"$LTSCALE"); aH(40,1.0);
-  aH(9,"$TILEMODE"); aH(70,1);
+  aH(9,"$TILEMODE"); aH(70,0);          // abre directamente en el layout «01 PLANTA»
+  aH(9,"$CTAB"); aH(1,LDEFS[0].name);
   aH(9,"$UNITMODE"); aH(70,0);
   aH(9,"$LUNITS"); aH(70,2);
   aH(9,"$LUPREC"); aH(70,4);
@@ -1534,76 +1528,135 @@ async function saveBlob(bytes,name,type){
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
+/* =========================================================
+   DIÁLOGO DE DATOS (opcional) antes de exportar
+   ========================================================= */
+const FIELD_LABELS={inst:"Institución / empresa",proyecto:"Proyecto",ubicacion:"Ubicación",codigo:"Código de lámina",dibujo:"Dibujó",reviso:"Revisó",
+  aprobo:"Aprobó",fecha:"Fecha",escuela:"Facultad / escuela",curso:"Curso",titulo:"Título del trabajo (opcional)",docente:"Docente",integrantes:"Integrantes (uno por línea)"};
+const DLG_SETS={
+  dxf:{title:"Datos del membrete (opcional)",note:"Se imprimen en el membrete de cada layout del plano (planta, frontal y perfil). Puedes dejar campos vacíos u omitirlos todos.",
+       keys:["inst","proyecto","ubicacion","codigo","dibujo","reviso","aprobo","fecha"],paper:true,ok:"Exportar AutoCAD"},
+  pdf:{title:"Datos de la carátula (opcional)",note:"Se usan en la carátula (primera página) de la memoria de cálculo en PDF. Puedes dejar campos vacíos u omitirlos todos.",
+       keys:["inst","escuela","curso","titulo","integrantes","docente","ubicacion","fecha"],paper:false,ok:"Generar PDF"}
+};
+function syncLogoUI(){
+  const im=document.getElementById("mb-logoprev"), q=document.getElementById("mb-logoquit"); if(!im) return;
+  if(MB.logo){ im.src=MB.logo; im.hidden=false; q.hidden=false; } else { im.removeAttribute("src"); im.hidden=true; q.hidden=true; }
+}
+function askData(kind){
+  return new Promise(resolve=>{
+    const set=DLG_SETS[kind], dlg=document.getElementById("dlg"), box=document.getElementById("dlg-fields"), msg=document.getElementById("dlg-msg");
+    document.getElementById("dlg-title").textContent=set.title+" · decantador "+S.mode;
+    document.getElementById("dlg-note").textContent=set.note;
+    document.getElementById("dlg-ok").textContent=set.ok;
+    msg.textContent="";
+    let html="";
+    if(set.paper) html+=`<div class="mbf"><label for="mb-papel">Tamaño de hoja (ISO full bleed, apaisada)</label><select id="mb-papel">
+      <option value="A1">A1 · 841 × 594 mm</option><option value="A2">A2 · 594 × 420 mm</option><option value="A3">A3 · 420 × 297 mm</option></select></div>`;
+    html+=`<div class="mbf"><label for="mb-logo">Logo (PNG o JPG)</label><div class="logorow"><input type="file" id="mb-logo" accept="image/*">
+      <img id="mb-logoprev" alt="" hidden><button class="btn" id="mb-logoquit" type="button" hidden>Quitar logo</button></div></div>`;
+    for(const k of set.keys){
+      html+= k==="integrantes"
+        ? `<div class="mbf" style="grid-column:1/-1"><label for="mb-${k}">${FIELD_LABELS[k]}</label><textarea id="mb-${k}" data-mb="${k}" maxlength="400"></textarea></div>`
+        : `<div class="mbf"><label for="mb-${k}">${FIELD_LABELS[k]}</label><input type="text" id="mb-${k}" data-mb="${k}" maxlength="90"></div>`;
+    }
+    box.innerHTML=html;
+    box.querySelectorAll("[data-mb]").forEach(el=>{ el.value=MB[el.dataset.mb]||""; });
+    if(set.paper) document.getElementById("mb-papel").value=PAPER[MB.papel]?MB.papel:"A3";
+    syncLogoUI();
+    document.getElementById("mb-logo").addEventListener("change",e=>{
+      const f=e.target.files&&e.target.files[0]; if(!f) return;
+      if(!/^image\//.test(f.type)){ msg.textContent="El archivo no es una imagen."; return; }
+      const rd=new FileReader();
+      rd.onload=()=>{
+        const im=new Image();
+        im.onload=()=>{
+          const sc=Math.min(1,400/Math.max(im.width,im.height)), w=Math.max(1,Math.round(im.width*sc)), h=Math.max(1,Math.round(im.height*sc));
+          const cv=document.createElement("canvas"); cv.width=w; cv.height=h; cv.getContext("2d").drawImage(im,0,0,w,h);
+          MB.logo=cv.toDataURL("image/png"); saveMB(); syncLogoUI(); logoReady=loadLogo(MB.logo); msg.textContent="Logo cargado.";
+        };
+        im.onerror=()=>{ msg.textContent="No se pudo leer la imagen."; };
+        im.src=rd.result;
+      };
+      rd.readAsDataURL(f);
+    });
+    document.getElementById("mb-logoquit").addEventListener("click",()=>{
+      MB.logo=""; saveMB(); syncLogoUI(); LOGO=null; logoReady=Promise.resolve(); document.getElementById("mb-logo").value="";
+    });
+    let settled=false;
+    const collect=()=>{ box.querySelectorAll("[data-mb]").forEach(el=>{ MB[el.dataset.mb]=el.value; });
+      if(set.paper) MB.papel=document.getElementById("mb-papel").value; saveMB(); };
+    const form=document.getElementById("dlgform"), okB=document.getElementById("dlg-ok"), skB=document.getElementById("dlg-skip"), caB=document.getElementById("dlg-cancel");
+    const done=a=>{
+      if(settled) return; settled=true;
+      form.removeEventListener("submit",onOk); okB.removeEventListener("click",onOk); skB.removeEventListener("click",onSkip);
+      caB.removeEventListener("click",onCancel); dlg.removeEventListener("cancel",onCancel); dlg.removeEventListener("close",onCancel);
+      if(dlg.open) dlg.close();
+      resolve(a);
+    };
+    function onOk(e){ if(e&&e.preventDefault) e.preventDefault(); collect(); done(true); }
+    function onSkip(){ if(set.paper) MB.papel=document.getElementById("mb-papel").value; saveMB(); done("skip"); }
+    function onCancel(){ done(false); }
+    form.addEventListener("submit",onOk); okB.addEventListener("click",onOk); skB.addEventListener("click",onSkip);
+    caB.addEventListener("click",onCancel); dlg.addEventListener("cancel",onCancel); dlg.addEventListener("close",onCancel);    dlg.showModal();
+  });
+}
+
+/* =========================================================
+   EXPORTAR DXF
+   ========================================================= */
 async function exportDXF(){
+  const ans=await askData("dxf"); if(!ans) return;
   let txt;
-  try{ await logoReady; txt=buildDXF(S,compute(S)); }catch(e){ alert("No se pudo generar el DXF: "+e.message); console.error(e); return; }
+  try{
+    await logoReady;
+    EXPORT_MB=getMB(ans==="skip");
+    txt=buildDXF(S,compute(S));
+  }catch(e){ alert("No se pudo generar el DXF: "+e.message); console.error(e); return; }
+  finally{ EXPORT_MB=null; }
   await saveBlob(dxfBytes(txt),"Decantador_"+S.mode+"_AutoCAD_"+getMB().papel+".dxf","application/dxf");
 }
 document.getElementById("btn-dxf").addEventListener("click",exportDXF);
-document.getElementById("btn-dxf2").addEventListener("click",exportDXF);
-document.getElementById("btn-pdf2").addEventListener("click",()=>exportPDF());
+logoReady=loadLogo(MB.logo);
 
 /* =========================================================
-   FORMULARIO DE MEMBRETE Y LOGO
-   ========================================================= */
-function syncLogoUI(){
-  const im=document.getElementById("mb-logoprev"), q=document.getElementById("mb-logoquit");
-  if(MB.logo){ im.src=MB.logo; im.hidden=false; q.hidden=false; } else { im.removeAttribute("src"); im.hidden=true; q.hidden=true; }
-}
-(function initMB(){
-  document.getElementById("mb-papel").value=MB.papel;
-  document.getElementById("mb-papel").addEventListener("change",e=>{ MB.papel=e.target.value; saveMB(); });
-  document.querySelectorAll("[data-mb]").forEach(inp=>{
-    inp.value=MB[inp.dataset.mb]||"";
-    inp.addEventListener("input",()=>{ MB[inp.dataset.mb]=inp.value; saveMB(); });
-  });
-  document.getElementById("mb-logo").addEventListener("change",e=>{
-    const f=e.target.files&&e.target.files[0]; if(!f) return;
-    const msg=document.getElementById("mbmsg");
-    if(!/^image\//.test(f.type)){ msg.textContent="El archivo no es una imagen."; return; }
-    const rd=new FileReader();
-    rd.onload=()=>{
-      const im=new Image();
-      im.onload=()=>{
-        const sc=Math.min(1,400/Math.max(im.width,im.height)), w=Math.max(1,Math.round(im.width*sc)), h=Math.max(1,Math.round(im.height*sc));
-        const cv=document.createElement("canvas"); cv.width=w; cv.height=h; cv.getContext("2d").drawImage(im,0,0,w,h);
-        MB.logo=cv.toDataURL("image/png"); saveMB(); syncLogoUI(); logoReady=loadLogo(MB.logo); msg.textContent="Logo cargado.";
-      };
-      im.onerror=()=>{ msg.textContent="No se pudo leer la imagen."; };
-      im.src=rd.result;
-    };
-    rd.readAsDataURL(f);
-  });
-  document.getElementById("mb-logoquit").addEventListener("click",()=>{
-    MB.logo=""; saveMB(); syncLogoUI(); LOGO=null; logoReady=Promise.resolve(); document.getElementById("mb-logo").value="";
-  });
-  syncLogoUI(); logoReady=loadLogo(MB.logo);
-})();
-
-/* =========================================================
-   MEMORIA DE CÁLCULO EN PDF (cuadro de impresión del navegador)
+   MEMORIA DE CÁLCULO EN PDF: carátula + contenido (cuadro de impresión)
    ========================================================= */
 async function exportPDF(){
-  const M=getMB(), nombre=S.mode==="secundario"?"SECUNDARIO":"PRIMARIO";
+  const ans=await askData("pdf"); if(!ans) return;
+  const M=getMB(ans==="skip"), nombre=S.mode==="secundario"?"SECUNDARIO":"PRIMARIO";
   const tmp=document.createElement("div"); tmp.innerHTML=memoHTML(C);
   tmp.querySelectorAll(".toolbar").forEach(e=>e.remove());
   tmp.querySelectorAll("input").forEach(i=>{ const s=document.createElement("span"); s.className="v"; s.textContent=i.value; i.replaceWith(s); });
-  const logo=M.logo?`<img class="logo" src="${M.logo}" alt="">`:"";
-  const cell=(l,v)=>`<td><small>${l}</small><b>${esc(v||"")}</b></td>`;
+  const q=s=>esc(s||"");
+  const titulo=M.titulo||`DECANTADOR ${nombre} CIRCULAR`;
+  const integr=(M.integrantes||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const cover=`<div class="cover">
+    ${M.logo?`<img class="logo" src="${M.logo}" alt="">`:""}
+    ${M.inst?`<div class="c-inst">${q(M.inst)}</div>`:""}
+    ${M.escuela?`<div class="c-esc">${q(M.escuela)}</div>`:""}
+    <div class="c-rule"></div>
+    <div class="c-t">MEMORIA DE CÁLCULO</div>
+    <div class="c-t2">${q(titulo)}</div>
+    ${M.curso?`<div class="c-curso">Curso: ${q(M.curso)}</div>`:""}
+    ${integr.length?`<div class="c-block"><b>Integrantes</b>${integr.map(s=>`<div>${q(s)}</div>`).join("")}</div>`:""}
+    ${M.docente?`<div class="c-block"><b>Docente</b><div>${q(M.docente)}</div></div>`:""}
+    ${(M.ubicacion||M.fecha)?`<div class="c-foot">${[M.ubicacion,M.fecha].filter(Boolean).map(q).join(" · ")}</div>`:""}
+  </div>`;
+  const runTitle=("Memoria de cálculo · decantador "+S.mode).replace(/["\\]/g,"");
   const css=`
-    @page{size:A4;margin:12mm 12mm 14mm;@bottom-right{content:"Página " counter(page);font:9px Arial,sans-serif;color:#555}}
+    @page{size:A4;margin:16mm 14mm 16mm;@top-center{content:"${runTitle}";font:9px Arial,sans-serif;color:#666}@bottom-right{content:"Página " counter(page);font:9px Arial,sans-serif;color:#555}}
+    @page :first{margin:14mm;@top-center{content:none}@bottom-right{content:none}}
     *{box-sizing:border-box}
     body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    table.pg{width:100%;border-collapse:collapse} table.pg>thead{display:table-header-group} table.pg>tfoot{display:table-footer-group}
-    table.pg>thead>tr>td,table.pg>tfoot>tr>td,table.pg>tbody>tr>td{padding:0;border:0}
-    .hd{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1.2px solid #111;padding:5px 8px;margin-bottom:8px}
-    .hd .logo{max-height:15mm;max-width:32mm}.hd .t1{font-size:12px;font-weight:700}.hd .t2{font-size:10px}
-    .hd .r{text-align:right;font-weight:700;font-size:11px}
-    table.ft{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
-    table.ft td{border:1px solid #111;padding:2px 6px;vertical-align:top}
-    table.ft small{display:block;font-size:7.5px;color:#555;text-transform:uppercase}table.ft b{font-size:10px}
+    .cover{height:262mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;page-break-after:always;break-after:page}
+    .cover .logo{max-height:48mm;max-width:90mm;margin-bottom:6px}
+    .c-inst{font-size:20px;font-weight:700;color:#0b6b3a}.c-esc{font-size:14px}.c-rule{width:60%;border-top:2px solid #0b6b3a;margin:14px 0}
+    .c-t{font-size:30px;font-weight:700;letter-spacing:1px}.c-t2{font-size:19px;font-weight:600;margin-bottom:12px}
+    .c-curso{font-size:14px}.c-block{font-size:13px;margin-top:10px}.c-block b{display:block;color:#0b6b3a;margin-bottom:2px;text-transform:uppercase;font-size:11px;letter-spacing:.6px}
+    .c-foot{margin-top:26px;font-size:13px;color:#444}
     h3{font-size:12.5px;margin:14px 0 3px;color:#0b6b3a;page-break-after:avoid} p.note{margin:0 0 5px;color:#555;font-size:9.5px}
-    .tablewrap{border:1px solid #bbb;border-radius:0;overflow:visible;padding:0}
+    .tablewrap{border:1px solid #bbb;overflow:visible;padding:0}
     table{border-collapse:collapse;width:100%;font-size:9px}
     th,td{padding:3px 5px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}
     th{background:#eef2f4;font-size:8px;text-transform:uppercase;position:static}
@@ -1614,21 +1667,15 @@ async function exportPDF(){
     div[style*="grid"]{display:grid!important;grid-template-columns:repeat(2,1fr)!important;gap:0 18px!important}
     .field{display:grid;grid-template-columns:1fr auto auto;gap:6px;margin:2px 0}
     .legendline{font-size:9px;color:#555}`;
-  const doc=`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Memoria de calculo - Decantador ${S.mode}</title><style>${css}</style></head><body>
-  <table class="pg"><thead><tr><td><div class="hd">${logo||"<span></span>"}
-    <div><div class="t1">${esc(M.inst||"")}</div><div class="t2">${esc(M.proyecto||"")}${M.ubicacion?" · "+esc(M.ubicacion):""}</div></div>
-    <div class="r">MEMORIA DE CÁLCULO<br>DECANTADOR ${nombre} CIRCULAR</div></div></td></tr></thead>
-  <tfoot><tr><td><table class="ft"><tr>${cell("Código",M.codigo+"-MC")}${cell("Dibujó",M.dibujo)}${cell("Revisó",M.reviso)}${cell("Aprobó",M.aprobo)}${cell("Fecha",M.fecha)}</tr></table></td></tr></tfoot>
-  <tbody><tr><td>${tmp.innerHTML}</td></tr></tbody></table></body></html>`;
+  const doc=`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Memoria de calculo - Decantador ${S.mode}</title><style>${css}</style></head><body>${cover}<div>${tmp.innerHTML}</div></body></html>`;
   const fr=document.createElement("iframe");
   fr.setAttribute("aria-hidden","true"); fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(fr);
   const w=fr.contentWindow; w.document.open(); w.document.write(doc); w.document.close();
-  const imgs=[...w.document.images];
-  await Promise.all(imgs.map(i=>i.complete?Promise.resolve():new Promise(r=>{ i.onload=i.onerror=r; })));
-  const done=()=>setTimeout(()=>fr.remove(),500);
-  w.addEventListener("afterprint",done);
-  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){ alert("No se pudo abrir el cuadro de impresión."); done(); } },150);
+  await Promise.all([...w.document.images].map(i=>i.complete?Promise.resolve():new Promise(r=>{ i.onload=i.onerror=r; })));
+  const fin=()=>setTimeout(()=>fr.remove(),500);
+  w.addEventListener("afterprint",fin);
+  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){ alert("No se pudo abrir el cuadro de impresión."); fin(); } },150);
 }
 
 </script>
