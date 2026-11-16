@@ -1160,7 +1160,7 @@ const MB_DEF={papel:"A3",inst:"UPeU - E.P. Ingeniería Ambiental",proyecto:"Deca
   escuela:"Facultad de Ingeniería y Arquitectura",curso:"Tratamiento de Aguas Residuales",titulo:"",
   integrantes:"Edith Jhakelin Luque Torres\nBerenise Yesmit Surco Arbues",docente:"Juan Eduardo Vigo Rivera"};
 const TEXT_KEYS=["inst","proyecto","ubicacion","codigo","dibujo","reviso","aprobo","fecha","escuela","curso","titulo","integrantes","docente"];
-let EXPORT_MB=null;      // datos usados por la exportación en curso
+let EXPORT_MB=null, EXPORT_DIAG=null;      // datos usados por la exportación en curso
 let MB={...MB_DEF};
 try{ const j=JSON.parse(localStorage.getItem(MB_KEY)||"null"); if(j&&typeof j==="object") MB={...MB_DEF,...j}; }catch(e){}
 function saveMB(){ try{ localStorage.setItem(MB_KEY,JSON.stringify(MB)); }catch(e){} }
@@ -1389,10 +1389,11 @@ function writeDXF(P,F,L3,C3,info){
     const vs=def.views.map(k=>VIEWS[k]);
     const {den,rects}=fit(vs);
     const escala="1:"+den;
-    membrete(em,li,def,escala);
+    const dg=EXPORT_DIAG||{paper:true,vps:true};
+    if(dg.paper) membrete(em,li,def,escala);
     // viewport principal del papel (id 1)
-    em.viewport({cx:W/2,cy:HH/2,w:W,h:HH,status:1,id:1,vcx:W/2,vcy:HH/2,dir:[0,0,1],vh:HH,flags:557088});
-    vs.forEach((v,i)=>{
+    if(dg.vps) em.viewport({cx:W/2,cy:HH/2,w:W,h:HH,status:1,id:1,vcx:W/2,vcy:HH/2,dir:[0,0,1],vh:HH,flags:557088});
+    if(dg.vps) vs.forEach((v,i)=>{
       const r=rects[i], b=v.box;
       const o={cx:r.x+r.w/2,cy:r.y+r.h/2,w:r.w,h:r.h,status:2+i,id:2+i,flags:0};
       o.vcx=(b.x0+b.x1)/2; o.vcy=(b.y0+b.y1)/2; o.dir=[0,0,1]; o.vh=r.h*den/1000;
@@ -1403,7 +1404,7 @@ function writeDXF(P,F,L3,C3,info){
     layInfo.push({den});
   });
   // el manejador del viewport principal de cada layout se recupera buscando su 1.ª entidad VIEWPORT
-  const firstVp=arr=>{ for(let i=0;i<arr.length;i++){ if(arr[i]==="VIEWPORT"&&arr[i-1]==="0"){ return arr[i+3]; } } return "0"; };
+  const firstVp=arr=>{ for(let i=0;i<arr.length;i++){ if(arr[i]==="VIEWPORT"&&arr[i-1]==="0"&&arr[i+1]==="5"){ return arr[i+2]; } } return "0"; };
 
   // ---------- ensamblado: estructura base tomada de un DXF R2000 que AutoCAD abre (plantilla) ----------
   const TPL=DXF_TPL, TL=TPL.tables.LAYER.handle, TB=TPL.tables.BLOCK_RECORD.handle;
@@ -1484,7 +1485,7 @@ function writeDXF(P,F,L3,C3,info){
     aO(10,0); aO(20,0); aO(11,W); aO(21,HH); aO(12,0); aO(22,0); aO(32,0);
     aO(14,"1e+20"); aO(24,"1e+20"); aO(34,"1e+20"); aO(15,"-1e+20"); aO(25,"-1e+20"); aO(35,"-1e+20");
     aO(146,0); aO(13,0); aO(23,0); aO(33,0); aO(16,1); aO(26,0); aO(36,0); aO(17,0); aO(27,1); aO(37,0); aO(76,1);
-    aO(330,brH); if(vpH) aO(331,vpH);
+    aO(330,brH); if(vpH&&vpH!=="0") aO(331,vpH);
   };
   layoutObj(hLayModel,"Model",true,0,hBrModel,null);
   LDEFS.forEach((d,i)=>layoutObj(hLay[i],d.name,false,i+1,hBrPaper[i],firstVp(i===0?ent:paperEnt[i])));
