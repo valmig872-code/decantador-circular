@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decantadores circulares: modelo 3D y memoria de cálculo</title>
+<meta name="description" content="Modelo 3D interactivo de decantadores circulares (primario y secundario), memoria de cálculo con fórmulas y exportación a AutoCAD (.dxf) en metros. UPeU Ingeniería Ambiental.">
+<meta property="og:title" content="Decantadores circulares: modelo 3D y memoria de cálculo">
+<meta property="og:description" content="Diseño de decantadores primario y secundario con vistas 3D, memoria de cálculo y exportación DXF.">
+<meta property="og:type" content="website">
+<style>
+:root{
+  --bg:#f4f6f8; --panel:#ffffff; --ink:#1b2733; --muted:#5d6b78; --line:#d9e0e6;
+  --brand:#0b6b3a; --brand-2:#0f8a4b; --accent:#1b6fb3; --warn:#b4570a; --ok:#0b7a3b;
+  --input:#eaf2fb; --assump:#fff6d6;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45;display:flex;flex-direction:column;min-height:100vh}
+header{background:var(--brand);color:#fff;padding:10px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px}
+header h1{font-size:17px;margin:0;font-weight:650;letter-spacing:.1px}
+header .sub{font-size:12px;opacity:.85}
+.spacer{flex:1}
+.mode{display:flex;gap:0;border:1px solid rgba(255,255,255,.55);border-radius:8px;overflow:hidden}
+.dxfbtn{background:#fff;color:var(--brand);border:0;border-radius:8px;padding:7px 12px;margin-right:10px;cursor:pointer;font:inherit;font-size:13px;font-weight:650}
+.mode button{background:transparent;color:#fff;border:0;padding:6px 12px;cursor:pointer;font:inherit;font-size:13px}
+.mode button[aria-pressed="true"]{background:#fff;color:var(--brand);font-weight:650}
+nav.tabs{display:flex;gap:4px;padding:8px 18px 0;background:var(--bg);border-bottom:1px solid var(--line)}
+nav.tabs button{border:1px solid var(--line);border-bottom:0;background:#e8edf1;padding:9px 18px;border-radius:9px 9px 0 0;cursor:pointer;font:inherit;font-weight:600;color:var(--muted)}
+nav.tabs button[aria-selected="true"]{background:var(--panel);color:var(--brand);position:relative;top:1px}
+main{flex:1;display:flex;min-height:0}
+section.tab{display:none;flex:1;min-height:0}
+section.tab.active{display:flex}
+/* ---- Modelado ---- */
+#tab-modelado{gap:0}
+#side{width:330px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:14px}
+#viewwrap{flex:1;position:relative;min-width:0;min-height:520px;background:linear-gradient(#eef3f7,#dfe7ee)}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#gl:active{cursor:grabbing}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.dimlab{position:absolute;transform:translate(-50%,-50%);background:rgba(255,255,255,.92);border:1px solid #9bb0c1;border-radius:5px;padding:1px 6px;font-size:12px;font-weight:600;color:#12446b;white-space:nowrap}
+.viewbtns{position:absolute;left:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap}
+.viewbtns button,.btn{background:#fff;border:1px solid #b9c6d1;border-radius:8px;padding:6px 11px;cursor:pointer;font:inherit;font-size:13px;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.viewbtns button[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+.viewbtns button:hover,.btn:hover{border-color:var(--brand)}
+#hint{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--muted);background:rgba(255,255,255,.8);padding:3px 8px;border-radius:6px}
+#vinfo{position:absolute;right:12px;top:12px;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted)}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:16px 0 8px}
+h2:first-child{margin-top:0}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:#fafcfd}
+.card b{display:block;font-size:19px;color:var(--brand);font-variant-numeric:tabular-nums}
+.card span{font-size:11.5px;color:var(--muted)}
+.field{display:grid;grid-template-columns:1fr 92px 54px;align-items:center;gap:6px;margin:5px 0}
+.field label{font-size:12.5px}
+.field .u{font-size:11.5px;color:var(--muted)}
+input[type=number]{width:100%;padding:5px 6px;border:1px solid #9ebad4;border-radius:6px;background:var(--input);font:inherit;font-variant-numeric:tabular-nums;color:#0a2f57}
+input[type=number].assump{background:var(--assump);border-color:#d8c36a;color:#4d3c00}
+input[type=number]:focus{outline:2px solid var(--accent);outline-offset:0}
+.toggles label{display:flex;align-items:center;gap:8px;margin:5px 0;cursor:pointer}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;font-size:12px;align-items:center}
+.sw{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.25)}
+.badge{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11.5px;font-weight:600}
+.badge.ok{background:#dcf3e5;color:var(--ok)}
+.badge.warn{background:#fde9d3;color:var(--warn)}
+.badge.na{background:#e9eef2;color:var(--muted)}
+/* ---- Memoria ---- */
+#tab-memoria{overflow:auto;display:none;justify-content:center}
+#tab-memoria.active{display:flex}
+#memo{max-width:1180px;width:100%;padding:18px 20px 40px}
+#memo h3{font-size:16px;margin:26px 0 4px;color:var(--brand)}
+#memo p.note{margin:0 0 8px;color:var(--muted);font-size:12.5px}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;border-bottom:1px solid #edf1f4;text-align:left;vertical-align:top}
+th{background:#eef3f6;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);position:sticky;top:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.res{font-weight:650;color:var(--brand)}
+td.f{font-family:var(--mono);font-size:12px;color:#243b53}
+td.s{font-family:var(--mono);font-size:12px;color:#5a4a00}
+tr:last-child td{border-bottom:0}
+tr.assump td:first-child{border-left:4px solid #e0c64c}
+.legendline{font-size:12px;color:var(--muted);margin:6px 0 0}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 10px}
+footer{padding:10px 18px;font-size:11.5px;color:var(--muted);background:#e9eef2;border-top:1px solid var(--line)}
+@media (max-width:860px){
+  main{flex-direction:column}
+  #tab-modelado{flex-direction:column}
+  #side{width:auto;border-right:0;border-bottom:1px solid var(--line);max-height:none}
+  #viewwrap{min-height:420px;flex:none;height:60vh}
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Decantadores circulares · modelo 3D y memoria de cálculo</h1>
+    <div class="sub">Método del Cap. 12 «Decantadores» (R. Isla de Juana) · UPeU, E.P. de Ingeniería Ambiental</div>
+  </div>
+  <div class="spacer"></div>
+  <button id="btn-dxf" class="dxfbtn" title="Descarga un DXF con planta, corte frontal, corte de perfil y modelo 3D en metros (1 unidad = 1 m)">⬇ Exportar AutoCAD (.dxf)</button>
+  <div class="mode" role="group" aria-label="Tipo de decantador">
+    <button id="m-prim" aria-pressed="true">Primario</button>
+    <button id="m-sec" aria-pressed="false">Secundario</button>
+  </div>
+</header>
+<nav class="tabs" role="tablist">
+  <button role="tab" id="t1" aria-selected="true" data-tab="modelado">Modelado 3D</button>
+  <button role="tab" id="t2" aria-selected="false" data-tab="memoria">Memoria de cálculo</button>
+</nav>
+<main>
+  <section class="tab active" id="tab-modelado">
+    <aside id="side">
+      <h2>Resultados</h2>
+      <div class="cards" id="cards"></div>
+      <h2>Datos de partida</h2>
+      <div id="inputsA"></div>
+      <h2>Capas</h2>
+      <div class="toggles">
+        <label><input type="checkbox" id="tg-agua" checked> Agua</label>
+        <label><input type="checkbox" id="tg-cotas" checked> Cotas</label>
+        <label><input type="checkbox" id="tg-tub" checked> Tuberías</label>
+        <label><input type="checkbox" id="tg-corte"> Corte por el eje (A-A)</label>
+      </div>
+      <h2>Leyenda</h2>
+      <div class="legend" id="legend"></div>
+    </aside>
+    <div id="viewwrap">
+      <canvas id="gl"></canvas>
+      <div id="labels"></div>
+      <div class="viewbtns" id="viewbtns">
+        <button data-v="iso" aria-pressed="true">Isométrica</button>
+        <button data-v="planta" aria-pressed="false">Planta</button>
+        <button data-v="frontal" aria-pressed="false">Frontal</button>
+        <button data-v="perfil" aria-pressed="false">Perfil</button>
+      </div>
+      <div id="vinfo">Vista isométrica</div>
+      <div id="hint">Arrastrar: girar · Mayús + arrastrar: mover · Rueda: acercar · Doble clic: restablecer</div>
+    </div>
+  </section>
+  <section class="tab" id="tab-memoria">
+    <div id="memo"></div>
+  </section>
+</main>
+<footer>
+  Integrantes: Edith Jhakelin Luque Torres · Berenise Yesmit Surco Arbues · Curso: Tratamiento de Aguas Residuales · Docente: Juan Eduardo Vigo Rivera.
+  Las filas con borde amarillo son supuestos de diseño del grupo (no vienen del libro). Valores calculados con π = 3,1416, igual que el libro.
+</footer>
+
+<script src="vendor/three.min.js"></script>
+<script>
+"use strict";
+/* =========================================================
+   1. ESTADO Y CÁLCULO (mismas fórmulas del Excel)
+   ========================================================= */
+const PI = 3.1416;
+const PRESETS = {
+  primario:   {L1:1000, L2:1500, L3:1.30, L4:2.5, L5:2, L6:0.5},
+  secundario: {L1:1000, L2:1500, L3:0.67, L4:4.1, L5:2, L6:0.5}
+};
+const BOOK = {
+  primario:   {L7:500, L8:750, L9:384.62, L10:22.13, L11:1250, L12:3.25, L13:1.95, L14:1.67, L15:66.38, L16:11.30},
+  secundario: {L7:500, L8:750, L9:746.27, L10:30.82, L11:2050, L12:2.75, L13:1.01, L14:2.73, L15:93.70, L16:8.00}
+};
+const BOOK_F = {L22:5702.40, L23:237.60, L24:7.92, L25:122.40, L26:201.00};
+const RANGES = {
+  primario:   {L3:[1.0,1.5,1.3], L4:[2,4,2.5]},
+  secundario: {L3:[0.5,1.0,0.8], L4:[3,6,5]},
+  L17:[50,70,66], L18:[20,40,33], L21:[10,30,15]
+};
+const DEF_F = {L17:66, L18:33, L19:360, L20:300, L21:30};
+const DEF_A = {pend:8, resg:0.3, wp:1.0, sobre:150,
+  emuro:0.25, elosa:0.30, hcanal:0.50, hpozo:1.50, dcol:1.20, hcolsup:0.70, hpuente:0.60,
+  vtub:1.0, dfan:0.15, dtolva:2.00, htolva:0.60, hrasq:0.40, cfx:0.80, cfy:0.60};
+
+const STATES = {
+  primario:   { mode:"primario",   ...PRESETS.primario,   ...DEF_F, ...DEF_A },
+  secundario: { mode:"secundario", ...PRESETS.secundario, ...DEF_F, ...DEF_A }
+};
+let S = STATES.primario;
+
+const ceil05 = d => Math.ceil(d/0.05 - 1e-9) * 0.05;
+
+function compute(S){
+  const C = {};
+  C.L7 = S.L1/S.L5;          C.L8 = S.L2/S.L5;
+  C.L9 = C.L7/S.L3;          C.L10 = Math.sqrt(C.L9*4/PI);
+  C.L11 = C.L7*S.L4;         C.L12 = C.L11/C.L9;
+  C.L13 = C.L8/C.L9;         C.L14 = C.L11/C.L8;
+  C.L15 = 2*PI*(C.L10/2 - S.L6);
+  C.L16 = C.L8/C.L15;
+  C.L22 = ((S.L1*S.L19*(S.L17/100))/1000)*24;
+  C.L23 = (S.L1*S.L19*(S.L17/100))/1000;
+  C.L24 = (C.L22/24)/S.L21;
+  C.L25 = S.L19*(100-S.L17)/100;
+  C.L26 = S.L20*(100-S.L18)/100;
+  // equipos
+  C.wc   = S.mode==="secundario" ? Math.sqrt(((S.L1*2)/S.L5)/3600) : Math.sqrt((S.L1/S.L5)/(1*3600));
+  C.wfoso= Math.sqrt((S.L1/S.L5)/(0.25*3600));
+  C.puente = S.mode==="secundario" ? (C.L10<25 ? "Radial con rasquetas de fondo" : "Radial de succión") : "Radial con rasquetas de fondo";
+  C.hc   = C.L12 + S.resg;
+  C.hcono= (C.L10/2)*(S.pend/100);
+  C.Ht   = C.hc + C.hcono;
+  C.dent = C.L10*0.15;
+  C.qb   = C.L24*2/S.L5;
+  C.nb   = 2*S.L5;
+  // derivadas para dibujo
+  C.Rint = C.L10/2;          C.Rext = C.Rint + S.emuro;   C.Dext = 2*C.Rext;
+  C.Rvert= C.Rint - S.L6;
+  C.zagua= -S.resg;          C.zmuro= -C.hc;              C.zcentro = -C.Ht;
+  C.zcanal = C.zagua - S.hcanal;
+  C.dafl = ceil05(Math.sqrt(4*(C.L7/3600)/(PI*S.vtub)));
+  C.dsal = ceil05(Math.sqrt(4*(C.L8/3600)/(PI*S.vtub)));
+  C.zafl = -(C.Ht + S.elosa + S.htolva + 0.3 + C.dafl/2);
+  C.zfan = -(C.Ht + S.htolva - S.dfan/2 - 0.05);
+  C.Lpuente = C.Rext;
+  return C;
+}
+
+/* =========================================================
+   2. FORMATO Y ENTRADAS
+   ========================================================= */
+const fmt = (v,d=2) => Number.isFinite(v) ? v.toFixed(d) : "—";
+const esc = s => String(s).replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+const INPUT_DEFS = [
+  ["L1","Caudal de diseño (L1)","m³/h",1,false],
+  ["L2","Caudal máximo (L2)","m³/h",1,false],
+  ["L3","Veloc. ascensional (L3)","m³/m²·h",0.01,false],
+  ["L4","T. de residencia (L4)","h",0.1,false],
+  ["L5","Número de líneas (L5)","und",1,false],
+  ["L6","Vertedero–pared (L6)","m",0.05,false]
+];
+const INPUT_F = [
+  ["L17","Elim. sólidos susp. (L17)","%",1,false],
+  ["L18","Elim. DBO (L18)","%",1,false],
+  ["L19","SS entrada (L19)","mg/l",1,false],
+  ["L20","DBO entrada (L20)","mg/l",1,false],
+  ["L21","Conc. fango (L21)","kg/m³",1,false]
+];
+const INPUT_E = [
+  ["pend","Pendiente del fondo","%",0.5,false],
+  ["resg","Resguardo","m",0.05,false],
+  ["wp","Anchura del puente","m",0.1,false]
+];
+const INPUT_A = [
+  ["emuro","Espesor del muro","m",0.05],
+  ["elosa","Espesor de la losa","m",0.05],
+  ["hcanal","Profundidad del canal","m",0.05],
+  ["hpozo","Altura sumergida cilindro entrada","m",0.1],
+  ["dcol","Diámetro de la columna","m",0.1],
+  ["hcolsup","Columna sobre coronación","m",0.1],
+  ["hpuente","Altura de la cercha","m",0.1],
+  ["vtub","Velocidad en tuberías","m/s",0.1],
+  ["dfan","Diámetro tubería de fangos","m",0.05],
+  ["dtolva","Diámetro de la tolva","m",0.1],
+  ["htolva","Profundidad de la tolva","m",0.1],
+  ["hrasq","Altura de la rasqueta","m",0.05]
+];
+
+function fieldHTML(key,label,unit,step,assump){
+  return `<div class="field"><label for="in-${key}">${label}</label>
+    <input type="number" id="in-${key}" data-k="${key}" step="${step}" value="${S[key]}" class="${assump?'assump':''}">
+    <span class="u">${unit}</span></div>`;
+}
+function renderInputsSide(){
+  const el = document.getElementById("inputsA");
+  el.innerHTML = INPUT_DEFS.map(d=>fieldHTML(...d)).join("");
+}
+function renderInputsMemo(){
+  return `<div class="tablewrap" style="padding:10px 14px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:0 28px">
+    <div><b style="font-size:12px;color:var(--muted)">DATOS DEL DECANTADOR (L1–L6)</b>${INPUT_DEFS.map(d=>fieldHTML(...d)).join("")}</div>
+    ${S.mode==="primario" ? `<div><b style="font-size:12px;color:var(--muted)">FANGOS (L17–L21)</b>${INPUT_F.map(d=>fieldHTML(...d)).join("")}</div>` : ""}
+    <div><b style="font-size:12px;color:var(--muted)">CONSTANTES DEL LIBRO</b>${INPUT_E.map(d=>fieldHTML(...d)).join("")}</div>
+    <div><b style="font-size:12px;color:var(--muted)">SUPUESTOS DE DISEÑO (amarillo)</b>${INPUT_A.map(d=>fieldHTML(d[0],d[1],d[2],d[3],true)).join("")}</div>
+    </div></div>`;
+}
+
+/* =========================================================
+   3. MEMORIA DE CÁLCULO
+   ========================================================= */
+function sameAsPreset(){
+  const p = PRESETS[S.mode];
+  return Object.keys(p).every(k => Math.abs(S[k]-p[k])<1e-9);
+}
+function sameFangos(){
+  return Object.keys(DEF_F).every(k => Math.abs(S[k]-DEF_F[k])<1e-9) && S.L1===1000 && S.L5===2;
+}
+function bookCell(val, book, active){
+  if(!active || book===undefined) return `<td class="num">—</td>`;
+  const ok = Math.abs(val-book) < 0.0051 + Math.abs(book)*0.0006;
+  return `<td class="num">${fmt(book,2)} <span class="badge ${ok?'ok':'warn'}">${ok?'✓':'≠'}</span></td>`;
+}
+function rowHTML(code,label,formula,subst,val,dec,unit,book,active,assump){
+  return `<tr class="${assump?'assump':''}"><td>${code}</td><td>${label}</td>
+   <td class="f">${esc(formula)}</td><td class="s">${esc(subst)}</td>
+   <td class="num res">${fmt(val,dec)} <span style="font-weight:400;color:var(--muted)">${unit}</span></td>
+   ${bookCell(val,book,active)}</tr>`;
+}
+function tableHTML(rows){
+  return `<div class="tablewrap"><table>
+   <thead><tr><th>Línea</th><th>Parámetro</th><th>Fórmula</th><th>Sustitución</th><th>Resultado</th><th>Libro</th></tr></thead>
+   <tbody>${rows.join("")}</tbody></table></div>`;
+}
+function rangeBadge(v,[lo,hi,rec]){
+  const ok = v>=lo-1e-9 && v<=hi+1e-9;
+  return `<span class="badge ${ok?'ok':'warn'}">${ok?'dentro del rango':'fuera del rango'}</span>`;
+}
+function memoHTML(C){
+  const n = x => fmt(x,2), p = S;
+  const act = sameAsPreset(), bk = BOOK[S.mode];
+  const R = (c,l,f,s,v,d,u,b)=>rowHTML(c,l,f,s,v,d,u,bk[b],act,false);
+  const prim = [
+    R("L7","Caudal de diseño por línea","L1 / L5",`${n(p.L1)} / ${p.L5}`,C.L7,2,"m³/h","L7"),
+    R("L8","Caudal máximo por línea","L2 / L5",`${n(p.L2)} / ${p.L5}`,C.L8,2,"m³/h","L8"),
+    R("L9","Superficie del decantador","L7 / L3",`${n(C.L7)} / ${p.L3}`,C.L9,2,"m²","L9"),
+    R("L10","Diámetro interno","(L9·4/3.1416)^0.5",`(${n(C.L9)}·4/3.1416)^0.5`,C.L10,2,"m","L10"),
+    R("L11","Volumen cilíndrico útil","L7 · L4",`${n(C.L7)} · ${p.L4}`,C.L11,2,"m³","L11"),
+    R("L12","Profundidad cilíndrica útil","L11 / L9",`${n(C.L11)} / ${n(C.L9)}`,C.L12,2,"m","L12"),
+    R("L13","Veloc. ascensional a caudal máximo","L8 / L9",`${n(C.L8)} / ${n(C.L9)}`,C.L13,2,"m³/m²·h","L13"),
+    R("L14","T. de residencia a caudal máximo","L11 / L8",`${n(C.L11)} / ${n(C.L8)}`,C.L14,2,"h","L14"),
+    R("L15","Longitud de vertedero","2·3.1416·(L10/2 − L6)",`2·3.1416·(${n(C.L10)}/2 − ${p.L6})`,C.L15,2,"m","L15"),
+    R("L16","Carga máxima sobre vertedero","L8 / L15",`${n(C.L8)} / ${n(C.L15)}`,C.L16,2,"m³/m·h","L16")
+  ];
+  const fa = sameFangos();
+  const F = (c,l,f,s,v,u)=>rowHTML(c,l,f,s,v,2,u,BOOK_F[c],fa,false);
+  const fang = [
+    F("L22","Producción de fangos primarios","((L1·L19·(L17/100))/1000)·24",`((${p.L1}·${p.L19}·(${p.L17}/100))/1000)·24`,C.L22,"kg/d"),
+    F("L23","Producción media de fangos","(L1·L19·(L17/100))/1000",`(${p.L1}·${p.L19}·(${p.L17}/100))/1000`,C.L23,"kg/h"),
+    F("L24","Caudal medio de fangos","(L22/24)/L21",`(${n(C.L22)}/24)/${p.L21}`,C.L24,"m³/h"),
+    F("L25","SS en la salida de decantación","L19·(100 − L17)/100",`${p.L19}·(100 − ${p.L17})/100`,C.L25,"mg/l"),
+    F("L26","DBO en la salida de decantación","L20·(100 − L18)/100",`${p.L20}·(100 − ${p.L18})/100`,C.L26,"mg/l")
+  ];
+  const E = (c,l,f,s,v,d,u,asm=false)=>rowHTML(c,l,f,s,v,d,u,undefined,false,asm);
+  const equip = [
+    (S.mode==="secundario"
+      ? E("Equipo","Anchura = altura de compuerta","(((L1·2)/L5)/(1·3600))^0.5",`(((${p.L1}·2)/${p.L5})/(1·3600))^0.5`,C.wc,3,"m")
+      : E("Equipo","Anchura = altura de compuerta","((L1/L5)/(1·3600))^0.5",`((${p.L1}/${p.L5})/(1·3600))^0.5`,C.wc,3,"m")),
+    E("Equipo","Profundidad cilíndrica","L12 + resguardo",`${n(C.L12)} + ${p.resg}`,C.hc,3,"m"),
+    E("Equipo","Altura del cono de fondo","(L10/2)·(pendiente/100)",`(${n(C.L10)}/2)·(${p.pend}/100)`,C.hcono,3,"m"),
+    E("Equipo","Profundidad total del decantador","prof. cilíndrica + (L10/2)·(pend./100)",`${fmt(C.hc,3)} + ${fmt(C.hcono,3)}`,C.Ht,3,"m"),
+    E("Equipo","Diámetro del cilindro de entrada","L10 · 0.15",`${n(C.L10)} · 0.15`,C.dent,3,"m"),
+    E("Equipo","Caudal unitario por bomba de fangos","L24 · 2 / L5",`${n(C.L24)} · 2 / ${p.L5}`,C.qb,2,"m³/h"),
+    E("Equipo","Número de bombas de fangos","2 · L5",`2 · ${p.L5}`,C.nb,0,"und")
+  ];
+  if(S.mode==="secundario"){
+    equip.push(E("Equipo","Compuerta de entrada a foso de fangos en exceso: anchura","((L1/L5)/(0.25·3600))^0.5",`((${p.L1}/${p.L5})/(0.25·3600))^0.5`,C.wfoso,3,"m"));
+  }
+  equip.push(`<tr><td>Equipo</td><td>Tipo de puente</td><td class="f">${S.mode==="secundario"?"si L10 < 25: radial con rasquetas; si no: radial de succión":"según libro (primario)"}</td><td class="s">${S.mode==="secundario"?"L10 = "+fmt(C.L10,2)+(C.L10<25?" < 25":" ≥ 25"):"—"}</td><td class="res" style="font-weight:650;color:var(--brand)">${C.puente}</td><td class="num">—</td></tr>`);
+  const D = (l,f,s,v,u,asm)=>E("Dibujo",l,f,s,v,3,u,asm);
+  const dib = [
+    D("Radio interno","L10 / 2",`${n(C.L10)} / 2`,C.Rint,"m"),
+    D("Radio externo","Rint + espesor del muro",`${fmt(C.Rint,3)} + ${p.emuro}`,C.Rext,"m"),
+    D("Diámetro externo","2 · Rext",`2 · ${fmt(C.Rext,3)}`,C.Dext,"m"),
+    D("Radio del vertedero","Rint − L6",`${fmt(C.Rint,3)} − ${p.L6}`,C.Rvert,"m"),
+    D("Cota del nivel de agua","− resguardo",`− ${p.resg}`,C.zagua,"m"),
+    D("Cota del fondo en el muro","− prof. cilíndrica",`− ${fmt(C.hc,3)}`,C.zmuro,"m"),
+    D("Cota del fondo en el centro","− prof. total",`− ${fmt(C.Ht,3)}`,C.zcentro,"m"),
+    D("Cota del fondo del canal","nivel de agua − prof. canal",`${fmt(C.zagua,3)} − ${p.hcanal}`,C.zcanal,"m",true),
+    D("Ø tubería afluente (comercial)","múltiplo de 0.05 ≥ (4·(L7/3600)/(π·v))^0.5",`(4·${fmt(C.L7/3600,4)}/(π·${p.vtub}))^0.5 = ${fmt(Math.sqrt(4*(C.L7/3600)/(PI*p.vtub)),3)}`,C.dafl,"m",true),
+    D("Ø tubería de salida (comercial)","múltiplo de 0.05 ≥ (4·(L8/3600)/(π·v))^0.5",`(4·${fmt(C.L8/3600,4)}/(π·${p.vtub}))^0.5 = ${fmt(Math.sqrt(4*(C.L8/3600)/(PI*p.vtub)),3)}`,C.dsal,"m",true),
+    D("Cota del eje de la tubería afluente","−(Ht + e.losa + h.tolva + 0.3 + Ø afl/2)",`−(${fmt(C.Ht,3)} + ${p.elosa} + ${p.htolva} + 0.3 + ${fmt(C.dafl/2,3)})`,C.zafl,"m",true),
+    D("Cota del eje de la tubería de fangos","−(Ht + h.tolva − Ø fangos/2 − 0.05)",`−(${fmt(C.Ht,3)} + ${p.htolva} − ${fmt(p.dfan/2,3)} − 0.05)`,C.zfan,"m",true),
+    D("Longitud del puente radial","Rext",`${fmt(C.Rext,3)}`,C.Lpuente,"m")
+  ];
+  const rb = (lbl,v,key)=>{
+    const r = key==="L3"||key==="L4" ? RANGES[S.mode][key] : RANGES[key];
+    return `<tr><td>${lbl}</td><td class="num">${v}</td><td class="num">${r[0]} a ${r[1]}</td><td class="num">${r[2]}</td><td>${rangeBadge(v,r)}</td></tr>`;
+  };
+  const chk = `<div class="tablewrap"><table><thead><tr><th>Dato</th><th>Valor usado</th><th>Rango del libro</th><th>Recomendado</th><th>Estado</th></tr></thead><tbody>
+    ${rb("Veloc. ascensional (L3)",S.L3,"L3")}${rb("T. de residencia (L4)",S.L4,"L4")}
+    ${rb("Elim. sólidos en suspensión (L17)",S.L17,"L17")}${rb("Elim. DBO (L18)",S.L18,"L18")}${rb("Conc. del fango (L21)",S.L21,"L21")}
+    </tbody></table></div>`;
+  const tipo = S.mode==="primario" ? "primario" : "secundario";
+  const nota = act ? `Con los datos del ejemplo del libro (${tipo}), cada resultado se compara con la cifra impresa: ✓ coincide (diferencia menor que el redondeo del libro).`
+                   : `Los datos fueron modificados: la columna «Libro» solo se muestra con los datos originales del ejemplo.`;
+  return `
+   <div class="toolbar"><button class="btn" id="btn-copy">Copiar memoria como texto</button><span id="copyres" class="legendline"></span></div>
+   <h3>1. Datos de partida · decantador ${S.mode}</h3>
+   <p class="note">Edite los valores: el modelo 3D y todos los resultados se recalculan al instante. Azul = dato del libro; amarillo = supuesto de diseño.</p>
+   ${renderInputsMemo()}
+   <h3>2. Verificación de rangos del libro (decantador ${tipo})</h3>${chk}
+   <h3>3. Cálculo del decantador ${tipo} (L7 a L16)</h3>
+   <p class="note">${nota} Fórmulas del libro, sección ${S.mode==="primario"?"12.3":"12.5"}.</p>${tableHTML(prim)}
+   <h3>4. Producción de fangos (L22 a L26)</h3>
+   ${S.mode==="primario"
+     ? `<p class="note">Sección 12.8 del libro. Se calcula con los datos de fangos del ejemplo 12.9.</p>${tableHTML(fang)}`
+     : `<p class="note">El libro calcula la producción de fangos (L17 a L26) para el decantador primario. Cambie a «Primario» para ver esa tabla y editar sus datos.</p>`}
+   <h3>5. Dimensiones de equipos (sección 12.10)</h3>
+   <p class="note">Fórmulas de la lista de equipos aplicadas a los resultados de este decantador.</p>${tableHTML(equip)}
+   <h3>6. Dimensiones y cotas para el modelo 3D</h3>
+   <p class="note">Cotas desde la coronación del muro (±0.00), positivas hacia arriba. Las filas con borde amarillo dependen de supuestos del grupo.</p>${tableHTML(dib)}`;
+}
+function memoText(C){
+  const rows = [...document.querySelectorAll("#memo tbody tr")]
+    .filter(tr=>tr.children.length>=5)
+    .map(tr=>[...tr.children].slice(0,5).map(td=>td.textContent.trim().replace(/\s+/g," ")).join(" | "));
+  return `MEMORIA DE CÁLCULO · decantador ${S.mode}\n`+rows.join("\n");
+}
+
+/* =========================================================
+   4. MODELO 3D (Three.js)
+   Coordenadas del dibujo: x, y en planta; z = cota (arriba).
+   En Three.js:  (x, z, −y).
+   ========================================================= */
+let renderer, scene, camera, root, dimGroup, aguaGroup, tubGroup, dimLabels = [];
+let clipPlane;
+const COLORS = {
+  muro:0xb9bec4, losa:0x8d949b, agua:0x3aa6e8, vertedero:0x2e7d5b, columna:0x9aa1a8, entrada:0xe0b43a,
+  puente:0x1f6fb4, rasqueta:0x7a3d96, flotantes:0xe08a1e, afluente:0xc23a3a, salida:0x1a9bd7, fangos:0x8a4d1d, caja:0xe08a1e
+};
+const LEGEND = [["Muro y losa",COLORS.muro],["Agua",COLORS.agua],["Vertedero y canal",COLORS.vertedero],["Cilindro de entrada",COLORS.entrada],
+  ["Columna central",COLORS.columna],["Puente radial",COLORS.puente],["Rasquetas / tubos de succión",COLORS.rasqueta],["Rasqueta y caja de flotantes",COLORS.flotantes],
+  ["Tubería afluente",COLORS.afluente],["Tubería de salida",COLORS.salida],["Tubería de fangos",COLORS.fangos]];
+
+const P3 = (x,y,z)=>new THREE.Vector3(x,z,-y);
+
+function mat(color, opts={}){
+  const m = new THREE.MeshStandardMaterial({color, roughness:.85, metalness:.05, side:THREE.DoubleSide,
+    clippingPlanes: [], transparent: !!opts.opacity, opacity: opts.opacity ?? 1, depthWrite: opts.opacity?false:true});
+  m.userData.clip = !opts.noclip;
+  return m;
+}
+function revolve(group, pts, color, opts={}){
+  const v = pts.map(([r,z])=>new THREE.Vector2(Math.max(r,1e-4), z));
+  const g = new THREE.LatheGeometry(v, 96);
+  const m = new THREE.Mesh(g, mat(color,opts));
+  group.add(m); return m;
+}
+function box(group, x0,x1,y0,y1,z0,z1,color,opts={}){
+  const g = new THREE.BoxGeometry(x1-x0, z1-z0, y1-y0);
+  const m = new THREE.Mesh(g, mat(color,opts));
+  const c = P3((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);
+  m.position.copy(c); group.add(m); return m;
+}
+function tube(group, a, b, r, color, opts={}){
+  const A = P3(...a), B = P3(...b);
+  const dir = new THREE.Vector3().subVectors(B,A), len = dir.length();
+  const g = new THREE.CylinderGeometry(r, r, len, 32, 1, false);
+  const m = new THREE.Mesh(g, mat(color,opts));
+  m.position.copy(A).addScaledVector(dir,0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize());
+  group.add(m); return m;
+}
+function lines(group, segs, color){
+  const pts=[]; segs.forEach(([a,b])=>{pts.push(P3(...a),P3(...b));});
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  const lm = new THREE.LineBasicMaterial({color}); lm.userData.clip = true;
+  const l = new THREE.LineSegments(g, lm);
+  group.add(l); return l;
+}
+function disposeGroup(g){
+  g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose()); });
+  while(g.children.length) g.remove(g.children[0]);
+}
+
+let sceneR = 18, sceneCenter = null;
+const THREE_OK = (typeof THREE !== 'undefined');
+if(THREE_OK) sceneCenter = new THREE.Vector3(0,-2.5,0);
+
+function buildModel(C){
+  disposeGroup(root);
+  dimLabels = [];
+  const s = S.pend/100;
+  const Rint=C.Rint, Rext=C.Rext, zc=C.zcentro, zm=C.zmuro, zag=C.zagua;
+  const rt=S.dtolva/2, rc=S.dcol/2, zh=zc-S.htolva, rb=rt+0.3, el=S.elosa;
+  const ztop = r => zc + r*s;
+
+  const body = new THREE.Group(); root.add(body);
+  // losa de fondo (cono) y tolva
+  revolve(body,[[rt,ztop(rt)],[Rint,zm]],COLORS.losa);
+  revolve(body,[[rc,zh],[rt,zh]],COLORS.losa);
+  revolve(body,[[rt,zh],[rt,ztop(rt)]],COLORS.losa);
+  revolve(body,[[Rext,zm-el],[rb,ztop(rb)-el],[rb,zh-0.3],[rc,zh-0.3]],COLORS.losa);
+  // muro
+  revolve(body,[[Rint,zm],[Rint,0]],COLORS.muro);
+  revolve(body,[[Rext,zm-el],[Rext,0]],COLORS.muro);
+  revolve(body,[[Rint,0],[Rext,0]],COLORS.muro);
+  revolve(body,[[Rint,zm],[Rext,zm-el]],COLORS.muro);
+  // vertedero y canal
+  revolve(body,[[C.Rvert,C.zcanal],[C.Rvert,zag]],COLORS.vertedero);
+  revolve(body,[[C.Rvert,C.zcanal],[Rint,C.zcanal]],COLORS.vertedero);
+  // columna y cilindro de entrada
+  revolve(body,[[rc,zh],[rc,S.hcolsup]],COLORS.columna,{opacity:.55});
+  revolve(body,[[0,S.hcolsup],[rc,S.hcolsup]],COLORS.columna);
+  revolve(body,[[C.dent/2,zag-S.hpozo],[C.dent/2,0]],COLORS.entrada,{opacity:.6});
+  // agua
+  aguaGroup = new THREE.Group(); root.add(aguaGroup);
+  revolve(aguaGroup,[[0,zag],[Rint,zag]],COLORS.agua,{opacity:.35});
+  revolve(aguaGroup,[[rt,ztop(rt)],[Rint,zm],[Rint,zag]],COLORS.agua,{opacity:.12});
+
+  // puente radial (+X)
+  const br = new THREE.Group(); root.add(br);
+  const Lp=C.Lpuente, wp=S.wp, hp=S.hpuente;
+  box(br,0,Lp,-wp/2,wp/2,hp-0.05,hp,COLORS.puente);
+  const segs=[];
+  for(const sy of [-1,1]){
+    const y=sy*wp/2;
+    box(br,0,Lp,y-0.04,y+0.04,0.05,0.13,COLORS.puente);
+    box(br,0,Lp,y-0.04,y+0.04,hp-0.13,hp-0.05,COLORS.puente);
+    const nb=Math.floor(Lp);
+    for(let i=0;i<=nb;i++){
+      const x=Math.min(i,Lp);
+      segs.push([[x,y,0.13],[x,y,hp-0.13]]);
+      if(i<nb) segs.push([[x,y,0.13],[Math.min(x+1,Lp),y,hp-0.13]]);
+    }
+    segs.push([[0,y,hp+1],[Lp,y,hp+1]],[[0,y,hp+.5],[Lp,y,hp+.5]]);
+    for(let x=0;x<=Lp+0.01;x+=2) segs.push([[x,y,hp],[x,y,hp+1]]);
+  }
+  lines(br,segs,COLORS.puente);
+  tube(br,[Rint+0.125,-wp/2-0.05,0.2],[Rint+0.125,wp/2+0.05,0.2],0.2,0x333b44);
+  box(br,Rext-0.7,Rext-0.2,-0.25,0.25,hp,hp+0.4,0x44505c);
+
+  // rasquetas de fondo (primario) o tubos de succión (secundario) y rasqueta de flotantes
+  const x0=rc+0.8, x1=Rint-0.2;
+  if(S.mode==="secundario"){
+    tube(br,[x0,0,0.12],[x1,0,0.12],0.10,COLORS.fangos);
+    for(let xh=x0+0.6; xh<x1; xh+=3){
+      tube(br,[xh,0,0.12],[xh,0,ztop(xh)+0.22],0.07,COLORS.fangos);
+      box(br,xh-0.06,xh+0.06,-0.55,0.55,ztop(xh)+0.08,ztop(xh)+0.20,COLORS.rasqueta);
+    }
+  } else
+  for(const yy of [-0.04,0.04]){
+    const a=P3(x0,yy,ztop(x0)+0.10), b=P3(x1,yy,ztop(x1)+0.10);
+    const a2=a.clone(); a2.y+=S.hrasq; const b2=b.clone(); b2.y+=S.hrasq;
+    const g=new THREE.BufferGeometry();
+    g.setAttribute("position",new THREE.Float32BufferAttribute([...a.toArray(),...b.toArray(),...b2.toArray(),...a.toArray(),...b2.toArray(),...a2.toArray()],3));
+    g.computeVertexNormals();
+    br.add(new THREE.Mesh(g,mat(COLORS.rasqueta)));
+  }
+  if(S.mode!=="secundario"){
+    const rs=[];
+    for(let xh=2.5;xh<x1;xh+=2.5) for(const sy of [-0.4,0.4]) rs.push([[xh,sy,0.05],[xh,0,ztop(xh)+0.10+S.hrasq]]);
+    lines(br,rs,COLORS.rasqueta);
+  }
+  const xf0=C.dent/2+0.1, xf1=C.Rvert-0.05;
+  box(br,xf0,xf1,-0.34,-0.30,zag-0.15,zag+0.10,COLORS.flotantes);
+  const fs=[]; for(let xh=2.5;xh<xf1;xh+=2.5) fs.push([[xh,-0.32,zag+0.10],[xh,-0.32,0.05]]);
+  lines(br,fs,COLORS.flotantes);
+  // caja de flotantes a 135°
+  const cr=C.Rvert-0.5, ang=3*Math.PI/4;
+  const cx=cr*Math.cos(ang), cy=cr*Math.sin(ang);
+  box(root,cx-S.cfx/2,cx+S.cfx/2,cy-S.cfy/2,cy+S.cfy/2,zag-0.6,zag+0.15,COLORS.caja);
+
+  // tuberías
+  tubGroup = new THREE.Group(); root.add(tubGroup);
+  const out = Rext+4;
+  tube(tubGroup,[0,0,C.zafl],[-out,0,C.zafl],C.dafl/2,COLORS.afluente);
+  tube(tubGroup,[0,0,C.zafl],[0,0,zag-S.hpozo+0.3],C.dafl/2,COLORS.afluente,{noclip:false});
+  const yo=-(C.Rvert+S.L6/2), zo=C.zcanal-C.dsal/2-0.05;
+  tube(tubGroup,[0,yo,C.zcanal],[0,yo,zo],C.dsal/2,COLORS.salida);
+  tube(tubGroup,[0,yo,zo],[0,-out,zo],C.dsal/2,COLORS.salida);
+  const yf=(rc+rt)/2;
+  tube(tubGroup,[0,yf,zh],[0,yf,C.zfan],S.dfan/2,COLORS.fangos);
+  tube(tubGroup,[0,yf,C.zfan],[0,out,C.zfan],S.dfan/2,COLORS.fangos);
+
+  // cotas
+  dimGroup = new THREE.Group(); root.add(dimGroup);
+  const dl = (a,b,text,c=0x12446b)=>{
+    const pa=P3(...a), pb=P3(...b);
+    const g=new THREE.BufferGeometry().setFromPoints([pa,pb]);
+    dimGroup.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:c,depthTest:false})));
+    const tk=(p,vert)=>{ const d=vert?new THREE.Vector3(0.35,0,0):new THREE.Vector3(0,0.35,0);
+      const t=new THREE.BufferGeometry().setFromPoints([p.clone().sub(d),p.clone().add(d)]);
+      dimGroup.add(new THREE.Line(t,new THREE.LineBasicMaterial({color:c,depthTest:false}))); };
+    tk(pa, a[2]!==b[2]); tk(pb, a[2]!==b[2]);
+    dimLabels.push({pos:pa.clone().add(pb).multiplyScalar(.5), text});
+  };
+  const ys = -(Rext+2.2);
+  dl([-Rint,ys,3.0],[Rint,ys,3.0],`Ø ${fmt(C.L10,2)} m`);
+  dl([-Rext,ys,1.2],[Rext,ys,1.2],`Ø ext ${fmt(C.Dext,2)} m`,0x667788);
+  const xe=Rext+1.6;
+  dl([xe,0,0],[xe,0,zc],`H total ${fmt(C.Ht,3)} m`);
+  dl([-xe,0,zag],[-xe,0,zm],`h útil ${fmt(C.L12,2)} m`);
+  dl([-xe-1.3,0,0],[-xe-1.3,0,zag],`resguardo ${fmt(S.resg,2)} m`,0x667788);
+
+  // encuadre
+  sceneR = Math.max(Rext+Math.max(5,out-Rext+1), 14);
+  const zmin = Math.min(C.zafl-C.dafl/2, zh-0.3), zmax = hp+1.2;
+  sceneCenter.set(0,(zmin+zmax)/2,0);
+  fitW = Rext+5; fitH = (zmax-zmin)/2*1.25;
+  applyClip();
+  applyToggles();
+}
+
+function applyClip(){
+  const on = document.getElementById("tg-corte").checked;
+  clipPlane.normal.set(0,0,-1); clipPlane.constant = 0;
+  renderer.localClippingEnabled = true;
+  root.traverse(o=>{ const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];
+    ms.forEach(m=>{ if(m.userData && m.userData.clip){ m.clippingPlanes = on?[clipPlane]:[]; m.needsUpdate=true; }}); });
+  // los materiales sin corte ("noclip") ya tienen lista vacía
+}
+function applyToggles(){
+  aguaGroup.visible = document.getElementById("tg-agua").checked;
+  dimGroup.visible  = document.getElementById("tg-cotas").checked;
+  tubGroup.visible  = document.getElementById("tg-tub").checked;
+  labelsLayer.style.display = dimGroup.visible ? "block" : "none";
+}
+
+/* ---------- cámara ortográfica con órbita propia ---------- */
+let canvas, labelsLayer, glOK = true;
+const view = {az:-Math.PI/4, el:0.5, zoom:1, pan:(THREE_OK?new THREE.Vector3(0,0,0):null)};
+const PRE = {iso:{az:-Math.PI/4,el:0.52,n:"Vista isométrica"}, planta:{az:0,el:Math.PI/2-1e-3,n:"Planta"},
+             frontal:{az:0,el:0,n:"Elevación frontal (desde el sur)"}, perfil:{az:Math.PI/2,el:0,n:"Perfil (desde el este)"}};
+let tween=null, curView="iso";
+let fitW=16, fitH=8;
+function fitZoom(name){
+  if(name!=="frontal" && name!=="perfil") return 1;
+  const asp=(canvas.clientWidth||1)/(canvas.clientHeight||1);
+  if(asp>=1){ return sceneR/Math.max(fitH, fitW/asp); }
+  return sceneR/Math.max(fitW, fitH*asp);
+}
+
+function setView(name){
+  const t=PRE[name]; if(!t || !glOK) return;
+  curView=name;
+  let da = t.az - view.az; da = Math.atan2(Math.sin(da),Math.cos(da));
+  tween={t0:performance.now(), dur:380, az0:view.az, az1:view.az+da, el0:view.el, el1:t.el, z0:view.zoom, z1:fitZoom(name), p0:view.pan.clone()};
+  document.querySelectorAll("#viewbtns button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.v===name?"true":"false"));
+  document.getElementById("vinfo").textContent=t.n;
+}
+function updateCamera(){
+  const w=canvas.clientWidth||1, h=canvas.clientHeight||1, asp=w/h;
+  let hh,hw; if(asp>=1){hh=sceneR; hw=sceneR*asp;} else {hw=sceneR; hh=sceneR/asp;}
+  hh/=view.zoom; hw/=view.zoom;
+  camera.left=-hw; camera.right=hw; camera.top=hh; camera.bottom=-hh; camera.near=-500; camera.far=500;
+  camera.updateProjectionMatrix();
+  const tgt = sceneCenter.clone().add(view.pan);
+  const d=new THREE.Vector3(Math.sin(view.az)*Math.cos(view.el), Math.sin(view.el), Math.cos(view.az)*Math.cos(view.el));
+  camera.position.copy(tgt).addScaledVector(d,120);
+  camera.up.set(0,1,0);
+  if(view.el>1.5) camera.up.set(0,0,-1);
+  camera.lookAt(tgt);
+  camera.updateMatrixWorld();
+}
+function updateLabels(){
+  if(!dimGroup.visible){return;}
+  const w=canvas.clientWidth, h=canvas.clientHeight;
+  while(labelsLayer.children.length<dimLabels.length){ const d=document.createElement("div"); d.className="dimlab"; labelsLayer.appendChild(d); }
+  while(labelsLayer.children.length>dimLabels.length) labelsLayer.removeChild(labelsLayer.lastChild);
+  dimLabels.forEach((L,i)=>{
+    const v=L.pos.clone().project(camera);
+    const el=labelsLayer.children[i];
+    el.textContent=L.text;
+    el.style.left=((v.x+1)/2*w)+"px"; el.style.top=((1-v.y)/2*h)+"px";
+  });
+}
+function frame(){
+  requestAnimationFrame(frame);
+  if(!glOK || !document.getElementById("tab-modelado").classList.contains("active")) return;
+  if(tween){
+    const k=Math.min(1,(performance.now()-tween.t0)/tween.dur), e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    view.az=tween.az0+(tween.az1-tween.az0)*e; view.el=tween.el0+(tween.el1-tween.el0)*e;
+    view.zoom=tween.z0+(tween.z1-tween.z0)*e; view.pan.copy(tween.p0).multiplyScalar(1-e);
+    if(k>=1) tween=null;
+  }
+  resize();
+  updateCamera();
+  renderer.render(scene,camera);
+  updateLabels();
+}
+function resize(){
+  const w=canvas.clientWidth, h=canvas.clientHeight;
+  const pr=Math.min(window.devicePixelRatio||1,2);
+  if(canvas.width!==Math.round(w*pr) || canvas.height!==Math.round(h*pr)){
+    renderer.setPixelRatio(pr); renderer.setSize(w,h,false);
+  }
+}
+function initGL(){
+  canvas=document.getElementById("gl"); labelsLayer=document.getElementById("labels");
+  if(!THREE_OK){ glOK=false; }
+  try{
+    if(!THREE_OK) throw new Error("three");
+    renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  }catch(e){
+    glOK=false;
+    document.getElementById("viewwrap").insertAdjacentHTML("beforeend",
+      '<div style="position:absolute;inset:0;display:grid;place-items:center;padding:30px;text-align:center;color:#5d6b78">No se pudo iniciar el visor 3D (WebGL o la biblioteca Three.js no cargaron), por eso no se muestra el modelo. La memoria de cálculo sigue funcionando.</div>');
+    return;
+  }
+  renderer.setClearColor(0x000000,0);
+  scene=new THREE.Scene();
+  camera=new THREE.OrthographicCamera(-10,10,10,-10,-500,500);
+  clipPlane=new THREE.Plane(new THREE.Vector3(0,0,-1),0);
+  scene.add(new THREE.AmbientLight(0xffffff,.62));
+  scene.add(new THREE.HemisphereLight(0xffffff,0x8899aa,.35));
+  const dir=new THREE.DirectionalLight(0xffffff,.75); dir.position.set(30,60,40); scene.add(dir);
+  const dir2=new THREE.DirectionalLight(0xffffff,.25); dir2.position.set(-40,20,-30); scene.add(dir2);
+  root=new THREE.Group(); scene.add(root);
+  const grid=new THREE.GridHelper(80,40,0x9fb0be,0xc3cfd9); grid.position.y=-9.5; grid.material.transparent=true; grid.material.opacity=.5; scene.add(grid);
+
+  // interacción
+  let drag=null;
+  canvas.addEventListener("pointerdown",e=>{ canvas.setPointerCapture(e.pointerId); drag={x:e.clientX,y:e.clientY,pan:e.shiftKey||e.button===2}; tween=null; });
+  canvas.addEventListener("pointermove",e=>{
+    if(!drag) return;
+    const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY;
+    if(drag.pan){
+      const k=2*sceneR/view.zoom/canvas.clientHeight;
+      const right=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0), up=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1);
+      view.pan.addScaledVector(right,-dx*k).addScaledVector(up,dy*k);
+    }else{
+      view.az-=dx*0.007; view.el=Math.max(-1.45,Math.min(Math.PI/2-1e-3,view.el+dy*0.007));
+      curView="libre"; document.querySelectorAll("#viewbtns button").forEach(b=>b.setAttribute("aria-pressed","false"));
+      document.getElementById("vinfo").textContent="Vista libre";
+    }
+  });
+  const up=()=>{drag=null;}; canvas.addEventListener("pointerup",up); canvas.addEventListener("pointercancel",up);
+  canvas.addEventListener("contextmenu",e=>e.preventDefault());
+  canvas.addEventListener("wheel",e=>{ e.preventDefault(); view.zoom=Math.max(.4,Math.min(8,view.zoom*Math.exp(-e.deltaY*0.0015))); },{passive:false});
+  canvas.addEventListener("dblclick",()=>setView(curView==="libre"?"iso":curView));
+  // pellizco táctil
+  let pinch=null;
+  canvas.addEventListener("touchstart",e=>{ if(e.touches.length===2){ pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);} },{passive:true});
+  canvas.addEventListener("touchmove",e=>{ if(e.touches.length===2&&pinch){ const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); view.zoom=Math.max(.4,Math.min(8,view.zoom*d/pinch)); pinch=d; e.preventDefault(); } },{passive:false});
+  canvas.addEventListener("touchend",()=>{pinch=null;});
+  requestAnimationFrame(frame);
+}
+
+/* =========================================================
+   5. INTERFAZ
+   ========================================================= */
+let C = compute(S);
+function renderCards(){
+  const items=[[fmt(C.L10,2)+" m","Diámetro interno (L10)"],[fmt(C.L12,2)+" m","Profundidad útil (L12)"],
+    [fmt(C.Ht,3)+" m","Profundidad total"],[fmt(C.L9,1)+" m²","Superficie (L9)"],
+    [fmt(C.L15,1)+" m","Vertedero (L15)"],[fmt(C.L16,2),"Carga vertedero m³/m·h"],
+    [fmt(C.L13,2),"Vel. asc. a Qmáx m³/m²·h"],[fmt(C.L14,2)+" h","T. residencia a Qmáx"],
+    [fmt(C.L7,0)+" m³/h","Caudal de diseño por línea (L7)"],[C.puente==="Radial de succión"?"Succión":"Rasquetas","Mecanismo de barrido de fangos"]];
+  document.getElementById("cards").innerHTML=items.map(([b,s])=>`<div class="card"><b>${b}</b><span>${s}</span></div>`).join("");
+}
+function refresh(opts={}){
+  C = compute(S);
+  renderCards();
+  if(glOK) buildModel(C);
+  if(!opts.skipMemo){
+    const memo=document.getElementById("memo"); const keep=memo.scrollTop;
+    memo.innerHTML = memoHTML(C); bindInputs(memo); bindCopy();
+  } else {
+    // sólo actualizar la memoria cuando se edita desde la pestaña de modelado
+    const memo=document.getElementById("memo"); memo.innerHTML = memoHTML(C); bindInputs(memo); bindCopy();
+  }
+}
+function bindInputs(scope){
+  scope.querySelectorAll("input[type=number][data-k]").forEach(inp=>{
+    inp.addEventListener("input",()=>{
+      const v=parseFloat(inp.value); if(!Number.isFinite(v)) return;
+      const k=inp.dataset.k;
+      if(["L1","L2","L3","L4","L5","L6"].includes(k) && v<=0 && k!=="L6") return;
+      if(k==="L5" && v<1) return;
+      S[k]=v;
+      const focusId=inp.id, pos=inp.selectionStart;
+      C=compute(S);
+      // mantener sincronizados los demás campos con la misma clave
+      document.querySelectorAll(`input[data-k="${k}"]`).forEach(o=>{ if(o!==inp) o.value=inp.value; });
+      renderCards();
+      if(glOK) buildModel(C);
+      // reescribir sólo las tablas de la memoria sin perder el foco del campo
+      const memo=document.getElementById("memo");
+      const active=document.activeElement && memo.contains(document.activeElement) ? document.activeElement.id : null;
+      if(memo.contains(inp)){
+        // actualizar tablas (todo salvo el bloque de datos)
+        const html=memoHTML(C); const tmp=document.createElement("div"); tmp.innerHTML=html;
+        const oldEls=[...memo.children], newEls=[...tmp.children];
+        oldEls.forEach((el,i)=>{ if(!el.querySelector || !el.querySelector("input[type=number]")){ if(newEls[i]) el.replaceWith(newEls[i]); } });
+        bindCopy();
+      } else {
+        const html=memoHTML(C); memo.innerHTML=html; bindInputs(memo); bindCopy();
+      }
+    });
+  });
+}
+function bindCopy(){
+  const b=document.getElementById("btn-copy"); if(!b) return;
+  b.onclick=async()=>{
+    const r=document.getElementById("copyres");
+    try{ await navigator.clipboard.writeText(memoText(C)); r.textContent="Copiado."; }
+    catch(e){ r.textContent="El navegador no permitió copiar; seleccione las tablas y use Ctrl+C."; }
+  };
+}
+function setMode(m){
+  S = STATES[m];
+  document.getElementById("m-prim").setAttribute("aria-pressed",m==="primario");
+  document.getElementById("m-sec").setAttribute("aria-pressed",m==="secundario");
+  renderInputsSide(); bindInputs(document.getElementById("inputsA"));
+  refresh();
+}
+function showTab(name){
+  document.querySelectorAll("section.tab").forEach(s=>s.classList.toggle("active",s.id==="tab-"+name));
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===name));
+  if(location.hash!=="#"+name) { try{ history.replaceState(null,"","#"+name);}catch(e){} }
+}
+document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(h==="modelado"||h==="memoria") showTab(h); });
+document.getElementById("m-prim").onclick=()=>setMode("primario");
+document.getElementById("m-sec").onclick=()=>setMode("secundario");
+document.querySelectorAll("#viewbtns button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.v)));
+["tg-agua","tg-cotas","tg-tub"].forEach(id=>document.getElementById(id).addEventListener("change",applyToggles));
+document.getElementById("tg-corte").addEventListener("change",applyClip);
+document.getElementById("legend").innerHTML=LEGEND.map(([n,c])=>`<span class="sw" style="background:#${c.toString(16).padStart(6,"0")}"></span><span>${n}</span>`).join("");
+
+initGL();
+renderInputsSide(); bindInputs(document.getElementById("inputsA"));
+refresh();
+{ const h=location.hash.slice(1); if(h==="memoria"||h==="modelado") showTab(h); }
+/* =========================================================
+   EXPORTAR A AUTOCAD (DXF R12, 1 unidad = 1 m)
+   Planta, corte frontal, corte de perfil y modelo 3D
+   ========================================================= */
+function buildDXF(S, C){
+  const P = [], F = [], L3 = [], C3 = [];
+  const f2 = (v,d=2)=>Number(v).toFixed(d);
+  const L  = (x1,y1,x2,y2,l="0")=>P.push(["L",x1,y1,x2,y2,l]);
+  const Ci = (x,y,r,l="0")=>P.push(["C",x,y,r,l]);
+  const T  = (x,y,h,s,l="TEXTO",al="l",rot=0)=>P.push(["T",x,y,h,s,l,al,rot]);
+  const PL = (pts,closed,l)=>{ const n=pts.length; for(let i=0;i<(closed?n:n-1);i++){ const a=pts[i],b=pts[(i+1)%n]; L(a[0],a[1],b[0],b[1],l);} };
+  const RC = (x0,y0,x1,y1,l)=>PL([[x0,y0],[x1,y0],[x1,y1],[x0,y1]],true,l);
+  const hatch = (poly,step=0.12,l="HATCH")=>{
+    const dx=Math.SQRT1_2, dy=Math.SQRT1_2, nx=-dy, ny=dx, n=poly.length;
+    const ds=poly.map(p=>p[0]*nx+p[1]*ny);
+    let d=Math.ceil(Math.min(...ds)/step)*step;
+    while(d<Math.max(...ds)){
+      const ts=[];
+      for(let i=0;i<n;i++){
+        const p=poly[i], q=poly[(i+1)%n];
+        const dp=p[0]*nx+p[1]*ny-d, dq=q[0]*nx+q[1]*ny-d;
+        if((dp<0)!==(dq<0)){ const t=dp/(dp-dq); const x=p[0]+t*(q[0]-p[0]), y=p[1]+t*(q[1]-p[1]); ts.push(x*dx+y*dy); }
+      }
+      ts.sort((a,b)=>a-b);
+      for(let i=0;i<ts.length-1;i+=2){ const px=nx*d, py=ny*d; L(px+dx*ts[i],py+dy*ts[i],px+dx*ts[i+1],py+dy*ts[i+1],l); }
+      d+=step;
+    }
+  };
+  // cotas (texto 0.30 m: legible al imprimir a 1:100)
+  const tk=0.12, ex=0.10, ov=0.15, th=0.30;
+  const tick=(x,y)=>L(x-tk,y-tk,x+tk,y+tk,"COTAS");
+  const dimH=(x1,x2,yd,txt,yo1,yo2)=>{
+    L(x1,yd,x2,yd,"COTAS"); tick(x1,yd); tick(x2,yd);
+    for(const [x,yo] of [[x1,yo1],[x2,yo2]]) if(yo!=null){ const sg=yd>yo?1:-1; L(x,yo+sg*ex,x,yd+sg*ov,"COTAS"); }
+    T((x1+x2)/2,yd+0.12,th,txt,"COTAS","c");
+  };
+  const dimV=(xd,y1,y2,txt,xo1,xo2,side=-1)=>{
+    L(xd,y1,xd,y2,"COTAS"); tick(xd,y1); tick(xd,y2);
+    for(const [y,xo] of [[y1,xo1],[y2,xo2]]) if(xo!=null){ const sg=xo<xd?1:-1; L(xo+sg*ex,y,xd+sg*ov,y,"COTAS"); }
+    T(xd+(side===1?0.12+th:-0.12),(y1+y2)/2,th,txt,"COTAS","c",90);
+  };
+
+  // ---------- parámetros geométricos ----------
+  const sec = S.mode==="secundario";
+  const s=S.pend/100, Rint=C.Rint, Rext=C.Rext, zc=C.zcentro, zm=C.zmuro, zag=C.zagua;
+  const rt=S.dtolva/2, rc=S.dcol/2, zh=zc-S.htolva, rb=rt+0.3, el=S.elosa;
+  const ztop=r=>zc+r*s;
+  const hp=S.hpuente, wp=S.wp, Lp=C.Lpuente, out=Rext+4, outW=Rext+6;
+  const x0=rc+0.8, x1=Rint-0.2;
+  const xf0=C.dent/2+0.1, xf1=C.Rvert-0.05;
+  const yo=-(C.Rvert+S.L6/2), zo=C.zcanal-C.dsal/2-0.05, yf=(rc+rt)/2;
+  const cr=C.Rvert-0.5, ang=3*Math.PI/4, cx=cr*Math.cos(ang), cy=cr*Math.sin(ang);
+  const nombre = sec ? "SECUNDARIO" : "PRIMARIO";
+
+  // ---------- diseño de la hoja de modelo ----------
+  const oyF = -(out+9);          // base de las elevaciones
+  const Xp  = 2*outW+6;          // centro del perfil
+  const X3  = Xp+2*outW+6;       // centro del modelo 3D
+
+  const titulo=(x,y,t1,t2)=>{ T(x,y,0.6,t1,"TEXTB","c"); T(x,y-0.55,0.3,t2,"TEXTO","c"); };
+
+  // ---------- parte simétrica de los cortes ----------
+  const simetrico=(ox,oy)=>{
+    for(const sg of [-1,1]){
+      const pt=(r,z)=>[ox+sg*r, oy+z];
+      const wall=[pt(Rint,0),pt(Rext,0),pt(Rext,zm-el),pt(Rint,zm)];
+      PL(wall,true,"MURO"); hatch(wall);
+      const slab=[pt(rt,ztop(rt)),pt(Rint,zm),pt(Rext,zm-el),pt(rb,ztop(rb)-el),pt(rb,zh-0.3),pt(rc,zh-0.3),pt(rc,zh),pt(rt,zh)];
+      PL(slab,true,"LOSA"); hatch(slab);
+      const a=pt(C.Rvert,C.zcanal), b=pt(C.Rvert,zag), c=pt(Rint,C.zcanal);
+      L(a[0],a[1],b[0],b[1],"VERTEDERO"); L(a[0],a[1],c[0],c[1],"VERTEDERO");
+      const c1=pt(rc,zh), c2=pt(rc,S.hcolsup); L(c1[0],c1[1],c2[0],c2[1],"COLUMNA");
+      const e1=pt(C.dent/2,zag-S.hpozo), e2=pt(C.dent/2,0); L(e1[0],e1[1],e2[0],e2[1],"CIL_ENTRADA");
+    }
+    L(ox-rc,oy+S.hcolsup,ox+rc,oy+S.hcolsup,"COLUMNA");
+    L(ox-Rint,oy+zag,ox+Rint,oy+zag,"AGUA");                    // nivel del agua
+    const tx=ox+Rint-1.6, ty=oy+zag; PL([[tx-0.3,ty+0.35],[tx+0.3,ty+0.35],[tx,ty]],true,"AGUA");
+    L(ox,oy+S.hcolsup+0.4,ox,oy+Math.min(C.zafl-C.dafl,zh-0.5)-0.4,"EJES");
+  };
+  const cotasSuperiores=(ox,oy)=>{
+    dimH(ox-Rint,ox+Rint,oy+2.4,`Ø ${f2(C.L10)} m`,oy,oy);
+    dimH(ox-Rext,ox+Rext,oy+3.6,`Ø ext ${f2(C.Dext)} m`,oy,oy);
+  };
+
+  // =============== PLANTA (origen 0,0) ===============
+  Ci(0,0,Rext,"MURO"); Ci(0,0,Rint,"MURO"); Ci(0,0,C.Rvert,"VERTEDERO");
+  Ci(0,0,C.dent/2,"CIL_ENTRADA"); Ci(0,0,rc,"COLUMNA"); Ci(0,0,rt,"OCULTA"); Ci(0,0,rb,"OCULTA");
+  L(-out,0,out,0,"EJES"); L(0,-out,0,out,"EJES");
+  // puente radial (+X)
+  RC(0,-wp/2,Lp,wp/2,"PUENTE");
+  for(const sy of [-1,1]) RC(0,sy*wp/2-0.04,Lp,sy*wp/2+0.04,"PUENTE");
+  RC(Rext-0.7,-0.25,Rext-0.2,0.25,"PUENTE");
+  RC(Rint+0.125-0.2,-wp/2-0.05,Rint+0.125+0.2,wp/2+0.05,"PUENTE");
+  // rasquetas / succión
+  if(sec){
+    L(x0,0,x1,0,"RASQUETAS");
+    for(let xh=x0+0.6; xh<x1; xh+=3) RC(xh-0.06,-0.55,xh+0.06,0.55,"RASQUETAS");
+  } else {
+    for(const yy of [-0.04,0.04]) L(x0,yy,x1,yy,"RASQUETAS");
+    for(let xh=2.5; xh<x1; xh+=2.5) L(xh,-0.4,xh,0.4,"RASQUETAS");
+  }
+  RC(xf0,-0.34,xf1,-0.30,"FLOTANTES");
+  RC(cx-S.cfx/2,cy-S.cfy/2,cx+S.cfx/2,cy+S.cfy/2,"FLOTANTES");
+  // tuberías (por debajo del plano de corte: línea oculta)
+  const t1=C.dafl/2, t2=C.dsal/2, t3=S.dfan/2;
+  L(0,t1,-out,t1,"TUB_AFLUENTE"); L(0,-t1,-out,-t1,"TUB_AFLUENTE");
+  L(-t2,yo,-t2,-out,"TUB_SALIDA"); L(t2,yo,t2,-out,"TUB_SALIDA");
+  L(-t3,yf,-t3,out,"TUB_FANGOS"); L(t3,yf,t3,out,"TUB_FANGOS");
+  dimH(-Rint,Rint,Rext+1.6,`Ø ${f2(C.L10)} m`,0,0);
+  dimH(-Rext,Rext,Rext+3.2,`Ø ext ${f2(C.Dext)} m`,0,0);
+  titulo(0,Rext+5.2,`PLANTA - DECANTADOR ${nombre}`,"Esc. 1:100 - dibujado a escala real (1 unidad = 1 m)");
+
+  // =============== CORTE FRONTAL (plano XZ) ===============
+  {
+    const ox=0, oy=oyF, X=h=>ox+h, Z=z=>oy+z;
+    simetrico(ox,oy);
+    // puente
+    RC(X(0),Z(hp-0.05),X(Lp),Z(hp),"PUENTE");
+    RC(X(0),Z(0.05),X(Lp),Z(0.13),"PUENTE"); RC(X(0),Z(hp-0.13),X(Lp),Z(hp-0.05),"PUENTE");
+    const nb=Math.floor(Lp);
+    for(let i=0;i<=nb;i++){ const x=Math.min(i,Lp); L(X(x),Z(0.13),X(x),Z(hp-0.13),"PUENTE"); if(i<nb) L(X(x),Z(0.13),X(Math.min(x+1,Lp)),Z(hp-0.13),"PUENTE"); }
+    L(X(0),Z(hp+1),X(Lp),Z(hp+1),"PUENTE"); L(X(0),Z(hp+0.5),X(Lp),Z(hp+0.5),"PUENTE");
+    for(let x=0;x<=Lp+0.01;x+=2) L(X(x),Z(hp),X(x),Z(hp+1),"PUENTE");
+    Ci(X(Rint+0.125),Z(0.2),0.2,"PUENTE");
+    RC(X(Rext-0.7),Z(hp),X(Rext-0.2),Z(hp+0.4),"PUENTE");
+    // rasquetas / succión
+    if(sec){
+      RC(X(x0),Z(0.02),X(x1),Z(0.22),"RASQUETAS");
+      for(let xh=x0+0.6; xh<x1; xh+=3){
+        RC(X(xh-0.07),Z(ztop(xh)+0.22),X(xh+0.07),Z(0.12),"RASQUETAS");
+        RC(X(xh-0.06),Z(ztop(xh)+0.08),X(xh+0.06),Z(ztop(xh)+0.20),"RASQUETAS");
+      }
+    } else {
+      PL([[X(x0),Z(ztop(x0)+0.10)],[X(x1),Z(ztop(x1)+0.10)],[X(x1),Z(ztop(x1)+0.10+S.hrasq)],[X(x0),Z(ztop(x0)+0.10+S.hrasq)]],true,"RASQUETAS");
+      for(let xh=2.5; xh<x1; xh+=2.5) L(X(xh),Z(0.05),X(xh),Z(ztop(xh)+0.10+S.hrasq),"RASQUETAS");
+    }
+    RC(X(xf0),Z(zag-0.15),X(xf1),Z(zag+0.10),"FLOTANTES");
+    for(let xh=2.5; xh<xf1; xh+=2.5) L(X(xh),Z(zag+0.10),X(xh),Z(0.05),"FLOTANTES");
+    RC(X(cx-S.cfx/2),Z(zag-0.6),X(cx+S.cfx/2),Z(zag+0.15),"OCULTA");
+    // tuberías
+    L(X(0),Z(C.zafl+t1),X(-out),Z(C.zafl+t1),"TUB_AFLUENTE"); L(X(0),Z(C.zafl-t1),X(-out),Z(C.zafl-t1),"TUB_AFLUENTE");
+    const zend=zag-S.hpozo+0.3;
+    L(X(-t1),Z(C.zafl),X(-t1),Z(zend),"TUB_AFLUENTE"); L(X(t1),Z(C.zafl),X(t1),Z(zend),"TUB_AFLUENTE");
+    Ci(X(0),Z(zo),t2,"TUB_SALIDA"); L(X(-t2),Z(C.zcanal),X(-t2),Z(zo),"TUB_SALIDA"); L(X(t2),Z(C.zcanal),X(t2),Z(zo),"TUB_SALIDA");
+    Ci(X(0),Z(C.zfan),t3,"TUB_FANGOS"); L(X(-t3),Z(zh),X(-t3),Z(C.zfan),"OCULTA"); L(X(t3),Z(zh),X(t3),Z(C.zfan),"OCULTA");
+    // cotas
+    cotasSuperiores(ox,oy);
+    dimV(X(Rext+1.6),Z(zc),Z(0),`H total ${f2(C.Ht,3)} m`,X(0),X(Rext),-1);
+    dimV(X(-Rext-1.6),Z(zm),Z(zag),`h útil ${f2(C.L12)} m`,X(-Rint),X(-Rint),-1);
+    dimV(X(-Rext-3.0),Z(zag),Z(0),`resguardo ${f2(S.resg)} m`,X(-Rint),X(-Rext),-1);
+    titulo(ox,oy+5.0,`CORTE FRONTAL A-A - DECANTADOR ${nombre}`,"Esc. 1:100 - cotas en metros");
+  }
+
+  // =============== CORTE DE PERFIL (plano YZ) ===============
+  {
+    const ox=Xp, oy=oyF, X=h=>ox+h, Z=z=>oy+z;
+    simetrico(ox,oy);
+    // puente visto de frente (sección transversal)
+    RC(X(-wp/2),Z(hp-0.05),X(wp/2),Z(hp),"PUENTE");
+    for(const sy of [-1,1]){
+      const y=sy*wp/2;
+      RC(X(y-0.04),Z(0.05),X(y+0.04),Z(0.13),"PUENTE"); RC(X(y-0.04),Z(hp-0.13),X(y+0.04),Z(hp-0.05),"PUENTE");
+      L(X(y),Z(0.13),X(y),Z(hp-0.13),"PUENTE");
+      L(X(y),Z(hp),X(y),Z(hp+1),"PUENTE");
+    }
+    RC(X(-wp/2-0.05),Z(0),X(wp/2+0.05),Z(0.4),"PUENTE");
+    RC(X(-0.25),Z(hp),X(0.25),Z(hp+0.4),"PUENTE");
+    // rasquetas / succión vistas de frente
+    if(sec){
+      Ci(X(0),Z(0.12),0.10,"RASQUETAS");
+      for(let xh=x0+0.6; xh<x1; xh+=3){
+        RC(X(-0.07),Z(ztop(xh)+0.22),X(0.07),Z(0.12),"RASQUETAS");
+        RC(X(-0.55),Z(ztop(xh)+0.08),X(0.55),Z(ztop(xh)+0.20),"RASQUETAS");
+      }
+    } else {
+      RC(X(-0.04),Z(ztop(x0)+0.10),X(0.04),Z(ztop(x1)+0.10+S.hrasq),"RASQUETAS");
+    }
+    RC(X(-0.34),Z(zag-0.15),X(-0.30),Z(zag+0.10),"FLOTANTES"); L(X(-0.32),Z(zag+0.10),X(-0.32),Z(0.05),"FLOTANTES");
+    RC(X(cy-S.cfy/2),Z(zag-0.6),X(cy+S.cfy/2),Z(zag+0.15),"OCULTA");
+    // tuberías
+    Ci(X(0),Z(C.zafl),t1,"TUB_AFLUENTE");
+    L(X(-t1),Z(C.zafl),X(-t1),Z(zag-S.hpozo+0.3),"TUB_AFLUENTE"); L(X(t1),Z(C.zafl),X(t1),Z(zag-S.hpozo+0.3),"TUB_AFLUENTE");
+    L(X(yo-t2),Z(C.zcanal),X(yo-t2),Z(zo),"TUB_SALIDA"); L(X(yo+t2),Z(C.zcanal),X(yo+t2),Z(zo),"TUB_SALIDA");
+    L(X(yo),Z(zo+t2),X(-out),Z(zo+t2),"TUB_SALIDA"); L(X(yo),Z(zo-t2),X(-out),Z(zo-t2),"TUB_SALIDA");
+    L(X(yf-t3),Z(zh),X(yf-t3),Z(C.zfan),"TUB_FANGOS"); L(X(yf+t3),Z(zh),X(yf+t3),Z(C.zfan),"TUB_FANGOS");
+    L(X(yf),Z(C.zfan+t3),X(out),Z(C.zfan+t3),"TUB_FANGOS"); L(X(yf),Z(C.zfan-t3),X(out),Z(C.zfan-t3),"TUB_FANGOS");
+    // cotas
+    cotasSuperiores(ox,oy);
+    dimV(X(Rext+1.6),Z(zc),Z(0),`H total ${f2(C.Ht,3)} m`,X(0),X(Rext),1);
+    dimV(X(Rext+3.0),Z(zm),Z(zag),`h útil ${f2(C.L12)} m`,X(Rint),X(Rint),1);
+    dimV(X(Rext+4.4),Z(zag),Z(0),`resguardo ${f2(S.resg)} m`,X(Rint),X(Rext),1);
+    titulo(ox,oy+5.0,`CORTE DE PERFIL B-B - DECANTADOR ${nombre}`,"Esc. 1:100 - cotas en metros");
+  }
+
+  // =============== CUADRO DE DATOS ===============
+  {
+    const bx=Xp-outW, by=Rext+3.0; let k=0;
+    const li=(s,h=0.35,l="TEXTO")=>{ T(bx,by-0.6*k,h,s,l,"l"); k++; };
+    li(`DECANTADOR ${nombre} CIRCULAR - DATOS Y RESULTADOS`,0.45,"TEXTB");
+    li(`UPeU - Ingenieria Ambiental - Tratamiento de Aguas Residuales`);
+    li(`Caudal medio L1 = ${f2(S.L1,0)} m3/h  |  Caudal maximo L2 = ${f2(S.L2,0)} m3/h  |  ${f2(S.L5,0)} lineas`);
+    li(`Caudal de diseno por linea L7 = ${f2(C.L7,2)} m3/h`);
+    li(`Carga superficial L3 = ${f2(S.L3,2)} m3/m2.h  |  Altura util L4 = ${f2(S.L4,2)} m  (resguardo ${f2(S.resg)} m)`);
+    li(`Superficie A = ${f2(C.L9,2)} m2  |  Diametro D = ${f2(C.L10,2)} m  |  Volumen V = ${f2(C.L11,2)} m3`);
+    li(`Profundidad cilindrica = ${f2(C.hc,2)} m  |  Altura total = ${f2(C.Ht,3)} m (pendiente ${f2(S.pend,0)} %)`);
+    li(`Cilindro de entrada Ø = ${f2(C.dent,3)} m  |  Compuerta ${f2(C.wc,3)} x ${f2(C.wc,3)} m`);
+    li(`Puente: ${C.puente}`);
+    li(`Escala: 1 unidad de dibujo = 1 metro. Use el comando MEDIR / DIST.`,0.30,"TEXTO");
+  }
+
+  // =============== MODELO 3D (a la derecha, mismas medidas) ===============
+  const f3=(layer,a,b,c,d)=>F.push(["3D_"+layer,a,b,c,d||c]);
+  const rev=(prof,layer,n=72)=>{
+    for(let k=0;k<prof.length-1;k++){
+      const [r0,z0]=prof[k], [r1,z1]=prof[k+1];
+      for(let i=0;i<n;i++){
+        const a0=2*Math.PI*i/n, a1=2*Math.PI*(i+1)/n;
+        const p=(r,a,z)=>[X3+r*Math.cos(a), r*Math.sin(a), z];
+        f3(layer,p(r0,a0,z0),p(r0,a1,z0),p(r1,a1,z1),p(r1,a0,z1));
+      }
+    }
+  };
+  const box3=(a0,a1,b0,b1,c0,c1,layer)=>{
+    const q=(x,y,z)=>[X3+x,y,z];
+    f3(layer,q(a0,b0,c0),q(a1,b0,c0),q(a1,b1,c0),q(a0,b1,c0));
+    f3(layer,q(a0,b0,c1),q(a1,b0,c1),q(a1,b1,c1),q(a0,b1,c1));
+    f3(layer,q(a0,b0,c0),q(a1,b0,c0),q(a1,b0,c1),q(a0,b0,c1));
+    f3(layer,q(a0,b1,c0),q(a1,b1,c0),q(a1,b1,c1),q(a0,b1,c1));
+    f3(layer,q(a0,b0,c0),q(a0,b1,c0),q(a0,b1,c1),q(a0,b0,c1));
+    f3(layer,q(a1,b0,c0),q(a1,b1,c0),q(a1,b1,c1),q(a1,b0,c1));
+  };
+  const tube3=(A,B,r,layer,n=24)=>{
+    const d=[B[0]-A[0],B[1]-A[1],B[2]-A[2]]; const dl=Math.hypot(...d); d[0]/=dl; d[1]/=dl; d[2]/=dl;
+    const t=Math.abs(d[0])<0.9?[1,0,0]:[0,1,0];
+    const cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+    let u=cr(d,t); const ul=Math.hypot(...u); u=u.map(v=>v/ul); const v=cr(d,u);
+    const ring=(c,i)=>{ const a=2*Math.PI*i/n; return [X3+c[0]+r*(Math.cos(a)*u[0]+Math.sin(a)*v[0]), c[1]+r*(Math.cos(a)*u[1]+Math.sin(a)*v[1]), c[2]+r*(Math.cos(a)*u[2]+Math.sin(a)*v[2])]; };
+    for(let i=0;i<n;i++) f3(layer,ring(A,i),ring(A,i+1),ring(B,i+1),ring(B,i));
+  };
+  const l3=(a,b,layer)=>L3.push([X3+a[0],a[1],a[2],X3+b[0],b[1],b[2],"3D_"+layer]);
+  const c3=(r,z,layer)=>C3.push([X3,0,z,r,"3D_"+layer]);
+
+  rev([[rt,ztop(rt)],[Rint,zm]],"LOSA");
+  rev([[rc,zh],[rt,zh]],"LOSA"); rev([[rt,zh],[rt,ztop(rt)]],"LOSA");
+  rev([[Rext,zm-el],[rb,ztop(rb)-el],[rb,zh-0.3],[rc,zh-0.3]],"LOSA");
+  rev([[Rint,zm],[Rint,0]],"MURO"); rev([[Rext,zm-el],[Rext,0]],"MURO");
+  rev([[Rint,0],[Rext,0]],"MURO"); rev([[Rint,zm],[Rext,zm-el]],"MURO");
+  rev([[C.Rvert,C.zcanal],[C.Rvert,zag]],"VERTEDERO"); rev([[C.Rvert,C.zcanal],[Rint,C.zcanal]],"VERTEDERO");
+  rev([[rc,zh],[rc,S.hcolsup]],"COLUMNA"); rev([[0,S.hcolsup],[rc,S.hcolsup]],"COLUMNA");
+  rev([[C.dent/2,zag-S.hpozo],[C.dent/2,0]],"CIL_ENTRADA");
+  rev([[0,zag],[Rint,zag]],"AGUA");
+  c3(Rext,0,"MURO"); c3(Rint,0,"MURO"); c3(Rint,zm,"MURO"); c3(C.Rvert,zag,"VERTEDERO"); c3(C.dent/2,0,"CIL_ENTRADA");
+  // puente
+  box3(0,Lp,-wp/2,wp/2,hp-0.05,hp,"PUENTE");
+  for(const sy of [-1,1]){
+    const y=sy*wp/2;
+    box3(0,Lp,y-0.04,y+0.04,0.05,0.13,"PUENTE"); box3(0,Lp,y-0.04,y+0.04,hp-0.13,hp-0.05,"PUENTE");
+    for(let i=0;i<=nbp();i++){ const x=Math.min(i,Lp); l3([x,y,0.13],[x,y,hp-0.13],"PUENTE"); if(i<nbp()) l3([x,y,0.13],[Math.min(x+1,Lp),y,hp-0.13],"PUENTE"); }
+    l3([0,y,hp+1],[Lp,y,hp+1],"PUENTE"); l3([0,y,hp+0.5],[Lp,y,hp+0.5],"PUENTE");
+    for(let x=0;x<=Lp+0.01;x+=2) l3([x,y,hp],[x,y,hp+1],"PUENTE");
+  }
+  function nbp(){ return Math.floor(Lp); }
+  tube3([Rint+0.125,-wp/2-0.05,0.2],[Rint+0.125,wp/2+0.05,0.2],0.2,"PUENTE");
+  box3(Rext-0.7,Rext-0.2,-0.25,0.25,hp,hp+0.4,"PUENTE");
+  // rasquetas / succión
+  if(sec){
+    tube3([x0,0,0.12],[x1,0,0.12],0.10,"RASQUETAS");
+    for(let xh=x0+0.6; xh<x1; xh+=3){
+      tube3([xh,0,0.12],[xh,0,ztop(xh)+0.22],0.07,"RASQUETAS");
+      box3(xh-0.06,xh+0.06,-0.55,0.55,ztop(xh)+0.08,ztop(xh)+0.20,"RASQUETAS");
+    }
+  } else {
+    for(const yy of [-0.04,0.04]){
+      const a=[X3+x0,yy,ztop(x0)+0.10], b=[X3+x1,yy,ztop(x1)+0.10];
+      F.push(["3D_RASQUETAS",a,b,[b[0],b[1],b[2]+S.hrasq],[a[0],a[1],a[2]+S.hrasq]]);
+    }
+    for(let xh=2.5; xh<x1; xh+=2.5) for(const sy of [-0.4,0.4]) l3([xh,sy,0.05],[xh,0,ztop(xh)+0.10+S.hrasq],"RASQUETAS");
+  }
+  box3(xf0,xf1,-0.34,-0.30,zag-0.15,zag+0.10,"FLOTANTES");
+  box3(cx-S.cfx/2,cx+S.cfx/2,cy-S.cfy/2,cy+S.cfy/2,zag-0.6,zag+0.15,"FLOTANTES");
+  // tuberías
+  tube3([0,0,C.zafl],[-out,0,C.zafl],t1,"TUB_AFLUENTE"); tube3([0,0,C.zafl],[0,0,zag-S.hpozo+0.3],t1,"TUB_AFLUENTE");
+  tube3([0,yo,C.zcanal],[0,yo,zo],t2,"TUB_SALIDA"); tube3([0,yo,zo],[0,-out,zo],t2,"TUB_SALIDA");
+  tube3([0,yf,zh],[0,yf,C.zfan],t3,"TUB_FANGOS"); tube3([0,yf,C.zfan],[0,out,C.zfan],t3,"TUB_FANGOS");
+  T(X3,Rext+5.2,0.6,`MODELO 3D - DECANTADOR ${nombre}`,"TEXTB","c");
+  T(X3,Rext+4.65,0.3,"Mismas medidas (metros). Capas 3D_*. Use VISTAS / 3DORBIT","TEXTO","c");
+
+  return writeDXF(P,F,L3,C3);
+}
+
+const DXF_LAYERS = {
+  "0":[7,"CONTINUOUS"], MURO:[7,"CONTINUOUS"], LOSA:[9,"CONTINUOUS"], COLUMNA:[8,"CONTINUOUS"], HATCH:[8,"CONTINUOUS"],
+  EJES:[1,"CENTER"], OCULTA:[8,"HIDDEN"], AGUA:[5,"CONTINUOUS"], VERTEDERO:[3,"CONTINUOUS"], PUENTE:[4,"CONTINUOUS"],
+  RASQUETAS:[30,"CONTINUOUS"], COTAS:[3,"CONTINUOUS"], CIL_ENTRADA:[2,"CONTINUOUS"], TUB_AFLUENTE:[6,"CONTINUOUS"],
+  TUB_SALIDA:[140,"CONTINUOUS"], TUB_FANGOS:[32,"CONTINUOUS"], FLOTANTES:[3,"CONTINUOUS"], TEXTO:[7,"CONTINUOUS"], TEXTB:[7,"CONTINUOUS"]
+};
+function writeDXF(P,F,L3,C3){
+  const o=[]; const add=(c,v)=>{ o.push(String(c)); o.push(String(v)); };
+  const n=v=>(Math.abs(v)<1e-9?0:v).toFixed(5);
+  const layerInfo=name=>{ if(DXF_LAYERS[name]) return DXF_LAYERS[name]; const b=name.replace(/^3D_/,""); return DXF_LAYERS[b]||[7,"CONTINUOUS"]; };
+  const used=new Set(["0"]);
+  P.forEach(p=>used.add(p[p[0]==="L"?5:p[0]==="C"?4:5]));
+  F.forEach(f=>used.add(f[0])); L3.forEach(l=>used.add(l[6])); C3.forEach(c=>used.add(c[4]));
+  // extensión
+  let mnx=1e9,mny=1e9,mnz=1e9,mxx=-1e9,mxy=-1e9,mxz=-1e9;
+  const ext=(x,y,z=0)=>{ mnx=Math.min(mnx,x); mny=Math.min(mny,y); mnz=Math.min(mnz,z); mxx=Math.max(mxx,x); mxy=Math.max(mxy,y); mxz=Math.max(mxz,z); };
+  P.forEach(p=>{ if(p[0]==="L"){ext(p[1],p[2]);ext(p[3],p[4]);} else if(p[0]==="C"){ext(p[1]-p[3],p[2]-p[3]);ext(p[1]+p[3],p[2]+p[3]);} else ext(p[1],p[2]); });
+  F.forEach(f=>f.slice(1).forEach(q=>ext(q[0],q[1],q[2]))); L3.forEach(l=>{ext(l[0],l[1],l[2]);ext(l[3],l[4],l[5]);});
+  C3.forEach(c=>{ext(c[0]-c[3],c[1]-c[3],c[2]);ext(c[0]+c[3],c[1]+c[3],c[2]);});
+  add(0,"SECTION"); add(2,"HEADER");
+  add(9,"$ACADVER"); add(1,"AC1009"); add(9,"$LTSCALE"); add(40,1.0); add(9,"$DWGCODEPAGE"); add(3,"ANSI_1252");
+  add(9,"$EXTMIN"); add(10,n(mnx)); add(20,n(mny)); add(30,n(mnz));
+  add(9,"$EXTMAX"); add(10,n(mxx)); add(20,n(mxy)); add(30,n(mxz));
+  add(0,"ENDSEC");
+  add(0,"SECTION"); add(2,"TABLES");
+  const lts=[["CONTINUOUS","Solid line",[]],["HIDDEN","Hidden __ __ __",[0.2,-0.1]],["CENTER","Center ____ _ ____",[0.8,-0.15,0.15,-0.15]]];
+  add(0,"TABLE"); add(2,"LTYPE"); add(70,lts.length);
+  lts.forEach(([nm,ds,pt])=>{ add(0,"LTYPE"); add(2,nm); add(70,0); add(3,ds); add(72,65); add(73,pt.length); add(40,pt.reduce((a,b)=>a+Math.abs(b),0)); pt.forEach(x=>add(49,x)); });
+  add(0,"ENDTAB");
+  add(0,"TABLE"); add(2,"LAYER"); add(70,used.size);
+  used.forEach(nm=>{ const [aci,lt]=layerInfo(nm); add(0,"LAYER"); add(2,nm); add(70,0); add(62,aci); add(6,lt); });
+  add(0,"ENDTAB");
+  add(0,"TABLE"); add(2,"STYLE"); add(70,1);
+  add(0,"STYLE"); add(2,"STANDARD"); add(70,0); add(40,0.0); add(41,1.0); add(50,0.0); add(71,0); add(42,0.2); add(3,"txt"); add(4,"");
+  add(0,"ENDTAB"); add(0,"ENDSEC");
+  add(0,"SECTION"); add(2,"ENTITIES");
+  for(const p of P){
+    const k=p[0];
+    if(k==="L"){ add(0,"LINE"); add(8,p[5]); add(10,n(p[1])); add(20,n(p[2])); add(30,0); add(11,n(p[3])); add(21,n(p[4])); add(31,0); }
+    else if(k==="C"){ add(0,"CIRCLE"); add(8,p[4]); add(10,n(p[1])); add(20,n(p[2])); add(30,0); add(40,n(p[3])); }
+    else if(k==="T"){ const [,x,y,h,s,layer,al,rot]=p;
+      add(0,"TEXT"); add(8,layer); add(10,n(x)); add(20,n(y)); add(30,0); add(40,n(h)); add(1,s); add(50,rot);
+      if(al!=="l"){ add(72,al==="c"?1:2); add(73,0); add(11,n(x)); add(21,n(y)); add(31,0); } }
+  }
+  for(const l of L3){ add(0,"LINE"); add(8,l[6]); add(10,n(l[0])); add(20,n(l[1])); add(30,n(l[2])); add(11,n(l[3])); add(21,n(l[4])); add(31,n(l[5])); }
+  for(const c of C3){ add(0,"CIRCLE"); add(8,c[4]); add(10,n(c[0])); add(20,n(c[1])); add(30,n(c[2])); add(40,n(c[3])); }
+  for(const f of F){ add(0,"3DFACE"); add(8,f[0]); for(let i=0;i<4;i++){ const q=f[1+i]; add(10+i,n(q[0])); add(20+i,n(q[1])); add(30+i,n(q[2])); } }
+  add(0,"ENDSEC"); add(0,"EOF");
+  return o.join("\r\n")+"\r\n";
+}
+// texto -> bytes ANSI 1252 (los caracteres usados están en Latin-1)
+function dxfBytes(str){ const b=new Uint8Array(str.length); for(let i=0;i<str.length;i++){ const c=str.charCodeAt(i); b[i]=c<256?c:63; } return b; }
+
+document.getElementById("btn-dxf").addEventListener("click",async()=>{
+  let txt;
+  try{ txt=buildDXF(S,compute(S)); }catch(e){ alert("No se pudo generar el DXF: "+e.message); return; }
+  const name="Decantador_"+S.mode+"_AutoCAD.dxf", bytes=dxfBytes(txt);
+  try{
+    const dl = (window.claude && claude.use) ? await claude.use("downloads") : null;
+    if(dl){
+      try{ await dl.save({filename:name, data:new Blob([bytes],{type:"application/dxf"})}); }
+      catch(e1){ if(e1 && /declin|cancel|denied|rechaz/i.test(String(e1.message||e1))) return; await dl.save({filename:name, data:bytes}); }
+      return;
+    }
+  }catch(e){ if(e && /declin|cancel|denied/i.test(String(e.message||e))) return; }
+  // respaldo (fuera del visor de artefactos)
+  const blob=new Blob([bytes],{type:"application/dxf"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+});
+
+</script>
+</body>
+</html>
