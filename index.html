@@ -1266,20 +1266,22 @@ const DENS=[10,20,25,50,75,100,125,150,175,200,250,300,400,500,750,1000,1500,200
 
 /* ---------- datos de membrete (se guardan en el navegador) ---------- */
 const MB_KEY="decantador_membrete_v1";
-const MB_DEF={papel:"A3",inst:"UPeU - E.P. Ingeniería Ambiental",proyecto:"Decantadores circulares - Tratamiento de Aguas Residuales",
+const MB_DEF={papel:"A2",inst:"Universidad Peruana Unión",proyecto:"Diseño de decantador {tipo} circular (Ø interno = {D} m)",ep:"E.P. de Ingeniería Ambiental",
   ubicacion:"",codigo:"DEC",dibujo:"",reviso:"",aprobo:"",fecha:"",logo:"",
   escuela:"Facultad de Ingeniería y Arquitectura",curso:"Tratamiento de Aguas Residuales",titulo:"",
   integrantes:"Edith Jhakelin Luque Torres\nBerenise Yesmit Surco Arbues",docente:"Juan Eduardo Vigo Rivera"};
-const TEXT_KEYS=["inst","proyecto","ubicacion","codigo","dibujo","reviso","aprobo","fecha","escuela","curso","titulo","integrantes","docente"];
+const TEXT_KEYS=["inst","ep","proyecto","ubicacion","codigo","dibujo","reviso","aprobo","fecha","escuela","curso","titulo","integrantes","docente"];
 let EXPORT_MB=null, EXPORT_DIAG=null, SVG_MODE=false;      // datos usados por la exportación en curso
 let MB={...MB_DEF};
 try{ const j=JSON.parse(localStorage.getItem(MB_KEY)||"null"); if(j&&typeof j==="object") MB={...MB_DEF,...j}; }catch(e){}
+if(MB.inst==="UPeU - E.P. Ingeniería Ambiental") MB.inst=MB_DEF.inst;                                  // valores antiguos por defecto
+if(MB.proyecto==="Decantadores circulares - Tratamiento de Aguas Residuales") MB.proyecto=MB_DEF.proyecto;
 function saveMB(){ try{ localStorage.setItem(MB_KEY,JSON.stringify(MB)); }catch(e){} }
 function hoy(){ const d=new Date(); return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear(); }
 function getMB(omit){
   const b={...MB, papel:PAPER[MB.papel]?MB.papel:"A3"};
   if(omit){ TEXT_KEYS.forEach(k=>b[k]=""); b.logo=""; }      // «omitir datos»: membrete en blanco, sin logo
-  else { b.fecha=b.fecha||hoy(); b.codigo=b.codigo||"DEC"; }
+  else { b.fecha=b.fecha||hoy(); b.codigo=b.codigo||"DEC"; b.proyecto=String(b.proyecto||"").replace("{tipo}",S.mode==="secundario"?"SECUNDARIO":"PRIMARIO").replace("{D}",compute(S).L10.toFixed(2)); }
   return b;
 }
 
@@ -1326,8 +1328,232 @@ function logoRuns(){            // tramos horizontales del mismo color -> SOLID
 /* =========================================================
    ESCRITURA DXF R2000 (AC1015): espacio modelo + 3 layouts
    ========================================================= */
+/* =========================================================
+   PLANO EN PDF con el formato de «Planos_A2_Decantador»:
+   lámina 1 planta general (marcas de corte A y B, números con leyenda, cuadro de datos y notas),
+   lámina 2 elevación frontal (sur) + corte A-A, lámina 3 elevación lateral (este) + corte B-B,
+   y rótulo de seis recuadros. Los datos son los de la aplicación.
+   ========================================================= */
+function planoRef(P,info,M,pap){
+  const {mk,S,C}=info, W=pap.w, H=pap.h, f=W/594, sec=S.mode==="secundario", nombre=sec?"SECUNDARIO":"PRIMARIO";
+  const num=(v,d=2)=>Number(v).toFixed(d);
+  const xe=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const q=v=>(+v).toFixed(2);
+  const ACI={1:"#d00000",2:"#c8a000",3:"#00863a",4:"#1479b8",5:"#1060c0",6:"#a000a0",7:"#000000",8:"#777777",9:"#555555",30:"#c06000",32:"#8a4d1d",140:"#0040b0"};
+  const LS={ MURO:["#000",0.5], LOSA:["#000",0.5], COLUMNA:["#000",0.35], HATCH:["#888",0.12], EJES:["#d05050",0.15,"6 1.5 1.5 1.5"], OCULTA:["#777",0.2,"2 1.2"],
+    AGUA:["#1060c0",0.25], VERTEDERO:["#00863a",0.3], PUENTE:["#1479b8",0.25], RASQUETAS:["#c06000",0.25], FLOTANTES:["#d09000",0.25], CIL_ENTRADA:["#c8a000",0.3],
+    TUB_AFLUENTE:["#a000a0",0.3], TUB_SALIDA:["#0040b0",0.3], TUB_FANGOS:["#8a4d1d",0.3] };
+  const stl=l=>{ const a=LS[l]||["#000",0.2]; return `stroke="${a[0]}" stroke-width="${q(a[1]*f)}"${a[2]?` stroke-dasharray="${a[2].split(" ").map(v=>q(v*f)).join(" ")}"`:""} fill="none" stroke-linecap="round"`; };
+  const GREEN="#00863a", RED="#d00000";
+
+  // ---------- geometría del modelo (metros) ----------
+  const s_=S.pend/100, Rint=C.Rint, Rext=C.Rext, zc=C.zcentro, zm=C.zmuro, zag=C.zagua, rt=S.dtolva/2, rc=S.dcol/2, zh=zc-S.htolva, rb=rt+0.3, el=S.elosa;
+  const hp=S.hpuente, wp=S.wp, Lp=C.Lpuente, out=Rext+4, outW=Rext+6, ztop=r=>zc+r*s_;
+  const x0=rc+0.8, x1=Rint-0.2, xf0=C.dent/2+0.1, xf1=C.Rvert-0.05, yo=-(C.Rvert+S.L6/2), zo=C.zcanal-C.dsal/2-0.05, yf=(rc+rt)/2;
+  const cr=C.Rvert-0.5, cxm=cr*Math.cos(3*Math.PI/4), cym=cr*Math.sin(3*Math.PI/4), t1=C.dafl/2, t2=C.dsal/2, t3=S.dfan/2;
+  const oyF=-(out+9), Xp=2*outW+6, rr=Math.PI/180, ang=(r,d)=>[r*Math.cos(d*rr),r*Math.sin(d*rr)];
+
+  // ---------- página ----------
+  const fx0=25*f, fx1=W-10*f, fy0=10*f, fy1=H-10*f, Wf=fx1-fx0, tbH=48.4*f, tbTop=fy1-tbH;
+  const T=(x,y,s,sz,o={})=>`<text x="${q(x)}" y="${q(y)}" font-family="${o.serif?"'Times New Roman',serif":"Arial,Helvetica,sans-serif"}" font-size="${q(sz*f)}" fill="${o.fill||"#000"}"${o.bold?' font-weight="700"':""}${o.anchor?` text-anchor="${o.anchor}"`:""}${o.rot?` transform="rotate(${o.rot} ${q(x)} ${q(y)})"`:""}>${xe(s)}</text>`;
+  const L=(xa,ya,xb,yb,c,w,d)=>`<line x1="${q(xa)}" y1="${q(ya)}" x2="${q(xb)}" y2="${q(yb)}" stroke="${c}" stroke-width="${q(w*f)}"${d?` stroke-dasharray="${d}"`:""}/>`;
+  const tick=(x,y,c)=>L(x-0.9*f,y+0.9*f,x+0.9*f,y-0.9*f,c,0.2);
+  const lineWithUnit=(xa,ya,xb,yb,c)=>L(xa,ya,xb,yb,c,0.18)+tick(xa,ya,c)+tick(xb,yb,c);
+  const hd=nombre;
+  const proyecto=(()=>{ const t=(M.proyecto||"").replace("{tipo}",hd).replace("{D}",num(C.L10,2)); return t; })();
+
+  function frameAndBlock(n,tituloPlano,escala){
+    const o=[];
+    o.push(`<rect x="0.1" y="0.1" width="${q(W-0.2)}" height="${q(H-0.2)}" fill="#fff" stroke="#999" stroke-width="${q(0.15*f)}"/>`);
+    o.push(`<rect x="${q(fx0)}" y="${q(fy0)}" width="${q(Wf)}" height="${q(fy1-fy0)}" fill="none" stroke="#000" stroke-width="${q(0.9*f)}"/>`);
+    // rótulo
+    const fr=[0.0824,0.211,0.268,0.188,0.1246,0.1259]; const xs=[fx0]; fr.forEach(v=>xs.push(xs[xs.length-1]+v*Wf));
+    o.push(L(fx0,tbTop,fx1,tbTop,"#000",0.9));
+    for(let i=1;i<6;i++) o.push(L(xs[i],tbTop,xs[i],fy1,"#000",i===1?0.6:0.5));
+    const ym=tbTop+tbH/2; o.push(L(xs[2],ym,fx1,ym,"#000",0.4));
+    // logo
+    if(M.logo&&LOGO){ const bx=xs[0]+2.5*f, by=tbTop+2.5*f, bw=xs[1]-xs[0]-5*f, bh=tbH-5*f, cs=Math.min(bw/LOGO.w,bh/LOGO.h), w_=LOGO.w*cs, h_=LOGO.h*cs;
+      o.push(`<image href="${M.logo}" x="${q(bx+(bw-w_)/2)}" y="${q(by+(bh-h_)/2)}" width="${q(w_)}" height="${q(h_)}" preserveAspectRatio="xMidYMid meet"/>`); }
+    // universidad
+    const ux=xs[1]+3*f; let uy=tbTop+8.5*f;
+    const up=s=>String(s||"").toUpperCase();
+    if(M.inst){ o.push(T(ux,uy,up(M.inst),4.0,{bold:1})); uy+=6.2*f; }
+    if(M.escuela){ o.push(T(ux,uy,up(M.escuela),2.6)); uy+=5.0*f; }
+    if(M.ep){ o.push(T(ux,uy,up(M.ep),2.9,{bold:1})); }
+    let cy_=tbTop+tbH-17*f; if(M.curso){ o.push(T(ux,cy_,"Curso: "+M.curso,2.5)); cy_+=6*f; } if(M.docente){ o.push(T(ux,cy_,"Docente: "+M.docente,2.5)); }
+    // proyecto y plano
+    const px=xs[2]+3*f;
+    o.push(T(px,tbTop+5.5*f,"PROYECTO:",2.0));
+    const pl=(s,w,maxl)=>{ // divide en líneas por ancho aproximado
+      const words=String(s).split(/\s+/).filter(Boolean), lines=[]; let cur=""; for(const wd of words){ const t=cur?cur+" "+wd:wd; if(t.length*sz_(w)*0.6>maxl&&cur){ lines.push(cur); cur=wd; } else cur=t; } if(cur) lines.push(cur); return lines; };
+    function sz_(w){ return w; }
+    const pw=xs[3]-xs[2]-6*f, plines=pl(up(proyecto),3.6*f,pw).slice(0,2);
+    plines.forEach((ln,i)=>o.push(T(px,tbTop+11.5*f+i*5.6*f,ln,3.6,{bold:1})));
+    o.push(T(px,ym+5.5*f,"PLANO:",2.0)); o.push(T(px,ym+13*f,tituloPlano,4.6,{bold:1})); o.push(T(px,ym+20.5*f,"Base de cálculo: R. Isla de Juana, Cap. 12 - Decantadores",1.9));
+    // integrantes
+    const ix=xs[3]+3*f; o.push(T(ix,tbTop+5.5*f,"INTEGRANTES:",2.0));
+    const names=String(M.integrantes||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean); const nsz=Math.min(3.4,(tbH/2-10*f)/Math.max(1,names.length)/f/1.4);
+    names.forEach((nm,i)=>o.push(T(ix,tbTop+11.5*f+i*nsz*1.45*f,nm,nsz)));
+    o.push(T(ix,ym+20.5*f,"Unidades: metros (cotas en m)",1.9));
+    // escala / fecha / lámina / formato
+    const ex=xs[4]+3*f, fxx=xs[5]+3*f;
+    o.push(T(ex,tbTop+5.5*f,"ESCALA:",2.0)); o.push(T(ex,tbTop+15*f,escala,3.8,{bold:1}));
+    o.push(T(fxx,tbTop+5.5*f,"FECHA:",2.0)); o.push(T(fxx,tbTop+15*f,M.fecha||"",3.6,{bold:1}));
+    o.push(T(ex,ym+5.5*f,"LÁMINA N°:",2.0)); o.push(T(ex,ym+19*f,`${n} / 3`,7.5,{bold:1}));
+    o.push(T(fxx,ym+5.5*f,"FORMATO:",2.0)); o.push(T(fxx,ym+19*f,pap.name.split("_")[3]||"",3.8,{bold:1}));
+    return o;
+  }
+
+  // dibuja entidades del modelo (líneas y círculos) con una transformación
+  function drawP(range,tx,ty,s,skip,only,pred){
+    const o=[]; const ok=l=>!(skip&&skip.has(l))&&(!only||only.has(l));
+    for(let i=range[0];i<range[1];i++){ const p=P[i]; if(pred&&!pred(p)) continue;
+      if(p[0]==="L"){ if(!ok(p[5])) continue; o.push(`<line x1="${q(tx(p[1]))}" y1="${q(ty(p[2]))}" x2="${q(tx(p[3]))}" y2="${q(ty(p[4]))}" ${stl(p[5])}/>`); }
+      else if(p[0]==="C"){ if(!ok(p[4])) continue; o.push(`<circle cx="${q(tx(p[1]))}" cy="${q(ty(p[2]))}" r="${q(p[3]*s)}" ${stl(p[4])}/>`); } }
+    return o;
+  }
+  const NOT_COTAS=new Set(["COTAS","TEXTO","TEXTB"]);
+
+  // ===================== LÁMINA 1: PLANTA =====================
+  function lamina1(){
+    const o=[]; const DENS1=[50,75,100,125,150,175,200,250,300,400,500];
+    const regX0=fx0+8*f, regX1=fx0+0.60*Wf, regY0=fy0+20*f, regY1=tbTop-6*f, aw=regX1-regX0, ah=regY1-regY0;
+    let den=DENS1[DENS1.length-1];
+    for(const d of DENS1){ const s=1000/d, Hx=Math.max(Rext*s+20*f, out*s+12*f, (Rext+3.4)*s+8*f); if(2*Hx<=aw&&2*Hx<=ah){ den=d; break; } }
+    const s=1000/den, cx=regX0+aw/2, cy=regY0+ah/2, Hx=Math.max(Rext*s+20*f,out*s+12*f,(Rext+3.4)*s+8*f);
+    const tx=x=>cx+x*s, ty=y=>cy-y*s;
+    o.push(...frameAndBlock(1,"PLANTA GENERAL",`1 : ${den}`));
+    o.push(T(fx0+6*f,fy0+12*f,`PLANTA GENERAL DEL DECANTADOR ${hd}`,5.0,{bold:1}));
+    o.push(T(fx0+6*f,fy0+18*f,`Esc. 1:${den}`,2.6));
+    o.push(...drawP(mk.plan,tx,ty,s,NOT_COTAS));
+    // dimensiones verticales (Ø interno y Ø externo)
+    const dv=(xm,rad,label)=>{ const X=tx(xm); o.push(lineWithUnit(X,ty(rad),X,ty(-rad),GREEN)); o.push(L(tx(0),ty(rad),X+1.2*f,ty(rad),GREEN,0.12)); o.push(L(tx(0),ty(-rad),X+1.2*f,ty(-rad),GREEN,0.12)); o.push(T(X-1.4*f,cy,label,2.2,{fill:GREEN,anchor:"middle",rot:-90})); };
+    dv(Rext+2.0,Rext,`Ø EXTERNO = ${num(C.Dext,2)} m`); dv(Rext+3.4,Rint,`Ø INTERNO = ${num(C.L10,2)} m`);
+    // marcas de corte
+    const mkr=(mx,my,letra)=>{ o.push(`<circle cx="${q(mx)}" cy="${q(my)}" r="${q(3.2*f)}" fill="#fff" stroke="${RED}" stroke-width="${q(0.5*f)}"/>`); o.push(T(mx,my+1.1*f,letra,3.2,{bold:1,fill:RED,anchor:"middle"})); };
+    const mA=out*s+9*f;
+    const arrow=(x,y,dx,dy)=>{ const n=Math.hypot(dx,dy), ux=dx/n, uy=dy/n, px=-uy, py=ux; return `<polygon points="${q(x)},${q(y)} ${q(x-ux*2.2*f+px*0.9*f)},${q(y-uy*2.2*f+py*0.9*f)} ${q(x-ux*2.2*f-px*0.9*f)},${q(y-uy*2.2*f-py*0.9*f)}" fill="${RED}"/>`; };
+    for(const sg of [-1,1]){
+      const mx=cx+sg*mA; mkr(mx,cy,"A");                  // A-A: marcas a izquierda y derecha, flecha hacia arriba
+      o.push(`<polyline points="${q(mx-sg*0)},${q(cy-3.2*f)} ${q(mx)},${q(cy-9*f)}" fill="none" stroke="${RED}" stroke-width="${q(0.5*f)}"/>`, arrow(mx,cy-10.5*f,0,-1));
+      const my=cy+sg*mA; mkr(cx,my,"B");                  // B-B: marcas arriba y abajo, flecha hacia la izquierda
+      o.push(`<polyline points="${q(cx-3.2*f)},${q(my)} ${q(cx-9*f)},${q(my)}" fill="none" stroke="${RED}" stroke-width="${q(0.5*f)}"/>`, arrow(cx-10.5*f,my,-1,0));
+    }
+    // números con nombre (insignias alrededor, con línea a la parte)
+    const Rr=Math.max(Rext*s+16*f, (Rext+0.5)*s+16*f);
+    const items=[
+      [1,"Puente radial con tracción periférica",[Lp*0.5,wp/2],24],
+      [2,"Cilindro de entrada (campana tranquilizadora)",ang(C.dent/2,150),134],
+      [3,"Columna central de hormigón",ang(rc,215),200],
+      [4,"Vertedero perimetral",ang(C.Rvert,245),228],
+      [5,"Muro circular de hormigón armado",ang(Rext,305),296],
+      [6,"Caja de recogida de flotantes",[cxm,cym],104],
+      [7,"Tubería de salida de agua",[t2,(yo-out)/2],252],
+      [8,"Tubería afluente (enterrada)",[-out*0.7,t1],166],
+      [9,"Tubería de salida de fangos (enterrada)",[t3,(yf+out)/2],74],
+      [10,sec?"Tubos de succión de fangos (ocultos)":"Rasqueta de fondo (oculta)",sec?[x0+0.6+3,0.55]:[5,0.04],6],
+      [11,"Rasqueta de flotantes",[(xf0+xf1)/2,-0.32],350],
+      [12,"Tolva anular de fangos (oculta)",ang(rt,50),50],
+      [13,`Canal de salida (ancho = L6 = ${num(S.L6,2)} m)`,ang((C.Rvert+Rint)/2,330),326]
+    ];
+    const br=2.9*f;
+    items.forEach(([n,nm,[ax,ay],bang])=>{
+      const bx=cx+Rr*Math.cos(bang*rr), by=cy-Rr*Math.sin(bang*rr), axp=tx(ax), ayp=ty(ay), d=Math.hypot(axp-bx,ayp-by)||1;
+      const ex=bx+(axp-bx)/d*br, ey=by+(ayp-by)/d*br;
+      o.push(L(ex,ey,axp,ayp,GREEN,0.18), `<circle cx="${q(axp)}" cy="${q(ayp)}" r="${q(0.7*f)}" fill="${GREEN}"/>`,
+             `<circle cx="${q(bx)}" cy="${q(by)}" r="${q(br)}" fill="#fff" stroke="${GREEN}" stroke-width="${q(0.25*f)}"/>`, T(bx,by+1.0*f,String(n),2.8,{bold:1,anchor:"middle"}));
+    });
+    // cuadro de datos de diseño
+    const gx=regX1+8*f, gx1=fx1-5*f, gw=gx1-gx; let gy=fy0+8*f;
+    o.push(T(gx,gy,"CUADRO DE DATOS DE DISEÑO (hoja de cálculo)",2.9,{bold:1})); gy+=3.5*f;
+    const rows=[["Caudal de diseño por línea (L7)",num(C.L7),"m³/h"],["Caudal máximo por línea (L8)",num(C.L8),"m³/h"],["Superficie del decantador (L9)",num(C.L9),"m²"],["Diámetro interno (L10)",num(C.L10),"m"],
+      ["Volumen cilíndrico útil (L11)",num(C.L11),"m³"],["Profundidad cilíndrica útil (L12)",num(C.L12),"m"],["Vel. ascensional a Qmáx (L13)",num(C.L13),"m³/m²·h"],["T. residencia a Qmáx (L14)",num(C.L14),"h"],
+      ["Longitud de vertedero (L15)",num(C.L15),"m"],["Carga sobre vertedero (L16)",num(C.L16),"m³/m·h"],[`Profundidad cilíndrica (útil + ${num(S.resg,2)})`,num(C.hc),"m"],[`Profundidad total (pend. ${num(S.pend,0)} %)`,num(C.Ht,3),"m"],["Ø cilindro de entrada (D·0.15)",num(C.dent),"m"]];
+    if(sec){ rows.push(["Anchura de compuerta de reparto",num(C.wc,3),"m"],["Tipo de puente",C.puente,""]); }
+    else { rows.push(["Producción de fangos (L22)",num(C.L22),"kg/d"],["Caudal medio de fangos (L24)",num(C.L24),"m³/h"]); }
+    const rh=5.6*f; o.push(`<rect x="${q(gx)}" y="${q(gy)}" width="${q(gw)}" height="${q(rh*rows.length)}" fill="none" stroke="#000" stroke-width="${q(0.5*f)}"/>`);
+    rows.forEach((r,i)=>{ const yy=gy+i*rh; if(i) o.push(L(gx,yy,gx1,yy,"#000",0.35)); o.push(T(gx+2*f,yy+3.8*f,r[0],2.2)); o.push(T(gx+gw*0.72,yy+3.8*f,r[1],2.4,{bold:1,anchor:"end"})); o.push(T(gx+gw*0.75,yy+3.8*f,r[2],1.9)); });
+    gy+=rh*rows.length+10*f;
+    o.push(T(gx,gy,"LEYENDA",2.9,{bold:1})); gy+=6*f;
+    items.slice().sort((a,b)=>a[0]-b[0]).forEach(([n,nm],i)=>{ const yy=gy+i*6.1*f; o.push(`<circle cx="${q(gx+3*f)}" cy="${q(yy-0.6*f)}" r="${q(2.4*f)}" fill="#fff" stroke="${GREEN}" stroke-width="${q(0.25*f)}"/>`, T(gx+3*f,yy+0.4*f,String(n),2.3,{bold:1,anchor:"middle"}), T(gx+8.5*f,yy+0.3*f,nm,2.5)); });
+    gy+=13*6.1*f+6*f;
+    o.push(T(gx,gy,"NOTAS",2.9,{bold:1})); gy+=5.5*f;
+    ["1. Dimensiones calculadas con las fórmulas del libro (R. Isla de Juana, Cap. 12 «Decantadores»).","2. Cotas en metros. Coronación del muro = ±0.00.","3. Espesores de muro y losa, tolva, columna y tuberías: supuestos de diseño.","4. Líneas discontinuas: elementos enterrados u ocultos."]
+      .forEach((t,i)=>o.push(T(gx,gy+i*4.7*f,t,2.0)));
+    return o.join("\n");
+  }
+
+  // ===================== LÁMINAS 2 y 3: ELEVACIÓN + CORTE =====================
+  // escala común a las dos láminas de elevaciones (la mayor que quepa en las dos)
+  function escalaElev(){
+    const topExt=hp+1.0+0.9+1.5+0.5, botExt=-(C.zafl)+t1+0.2+1.0, DENS2=[50,60,75,100,125,150,175,200,250,300];
+    const availH=(tbTop-6*f)-(fy0+8*f), availW=(fx1-4*f)-(fx0+4*f);
+    for(const d of DENS2){ const s=1000/d; if(2*(topExt+botExt)*s+2*8*f+6*f<=availH&&(out*s+53*f)+(Rext+9.6)*s+8*f<=availW) return d; }
+    return DENS2[DENS2.length-1];
+  }
+  function elevSheet(n,vista,den){
+    const o=[]; const frontal=vista==="frontal"; const s=1000/den;
+    const topExt=hp+1.0+0.9+1.5+0.5, botExt=-(C.zafl)+t1+0.2+1.0, panelH=(topExt+botExt)*s;
+    const xc=fx1-4*f-(Rext+9.6)*s-0*f, ptop1=fy0+8*f+8*f, ptop2=ptop1+panelH+6*f+8*f;
+    o.push(...frameAndBlock(n,frontal?"ELEVACIÓN FRONTAL Y CORTE A-A":"ELEVACIÓN LATERAL Y CORTE B-B",`1 : ${den}`));
+    const secRange=frontal?mk.front:mk.prof, xoff=frontal?0:Xp;
+    const eleTitle=frontal?"ELEVACIÓN FRONTAL (SUR)":"ELEVACIÓN LATERAL (ESTE)", secTitle=frontal?"CORTE A-A":"CORTE B-B";
+    const panel=(ptop,title,isSection)=>{
+      const yCor=ptop+topExt*s, X=h=>xc+h*s, Z=z=>yCor-z*s;
+      o.push(T(fx0+6*f,ptop-3*f,`${title}   Esc. 1:${den}`,3.4,{bold:1}));
+      // geometría del modelo (sección completa o solo puente y tuberías en la elevación)
+      const tx=x=>X(x-xoff), ty=y=>Z(y-oyF);
+      if(isSection){ o.push(...drawP(secRange,tx,ty,s,NOT_COTAS)); }
+      else {
+        o.push(...drawP(secRange,tx,ty,s,null,new Set(["PUENTE","TUB_AFLUENTE","TUB_SALIDA","TUB_FANGOS"]),p=>{ const l=p[p[0]==="C"?4:5]; if(l==="PUENTE") return true; if(frontal&&l==="TUB_SALIDA") return false; return p[0]==="C"||Math.abs(p[1]-p[3])>1e-6; }));
+        const pts=[[-Rext,0],[Rext,0],[Rext,zm-el],[rb,ztop(rb)-el],[rb,zh-0.3],[-rb,zh-0.3],[-rb,ztop(rb)-el],[-Rext,zm-el]];
+        o.push(`<polygon points="${pts.map(p=>q(X(p[0]))+","+q(Z(p[1]))).join(" ")}" fill="#fff" fill-opacity="0.0" stroke="#000" stroke-width="${q(0.5*f)}" stroke-linejoin="miter"/>`);
+        o.push(L(X(-Rext),Z(zag),X(Rext),Z(zag),"#1060c0",0.2,`${q(2*f)} ${q(1.2*f)}`));                       // nivel de agua (oculto)
+        o.push(`<rect x="${q(X(-C.dent/2))}" y="${q(Z(0))}" width="${q(C.dent*s)}" height="${q((S.hpozo-zag)*s)}" fill="none" stroke="#777" stroke-width="${q(0.2*f)}" stroke-dasharray="${q(2*f)} ${q(1.2*f)}"/>`);   // cilindro de entrada (oculto)
+      }
+      // cotas horizontales superiores
+      const zA=hp+1.0+0.9, zB=zA+1.5;
+      o.push(lineWithUnit(X(-Rint),Z(zA),X(Rint),Z(zA),GREEN), L(X(-Rint),Z(0),X(-Rint),Z(zA)-1.2*f,GREEN,0.12), L(X(Rint),Z(0),X(Rint),Z(zA)-1.2*f,GREEN,0.12),
+             T(X(0),Z(zA)-1.0*f,`Ø INTERNO = ${num(C.L10,2)} m`,2.2,{fill:GREEN,anchor:"middle"}));
+      o.push(lineWithUnit(X(-Rext),Z(zB),X(Rext),Z(zB),GREEN), L(X(-Rext),Z(0),X(-Rext),Z(zB)-1.2*f,GREEN,0.12), L(X(Rext),Z(0),X(Rext),Z(zB)-1.2*f,GREEN,0.12),
+             T(X(0),Z(zB)-1.0*f,`Ø EXTERNO = ${num(C.Dext,2)} m`,2.2,{fill:GREEN,anchor:"middle"}));
+      // cotas verticales a la derecha
+      const dvv=(xm,za,zb,label)=>{ const XX=X(xm); o.push(lineWithUnit(XX,Z(za),XX,Z(zb),GREEN), T(XX-1.4*f,(Z(za)+Z(zb))/2,label,2.1,{fill:GREEN,anchor:"middle",rot:-90})); };
+      const xd1=Rext+4.4, xd2=Rext+6.6, xd3=Rext+9.0;
+      dvv(xd1,0,zm,`h cilíndrica = ${num(C.hc,2)} m`); dvv(xd1,zm,zc,`cono ${num(S.pend,0)} %`); dvv(xd2,0,zc,`H total = ${num(C.Ht,3)} m`); dvv(xd3,zag,zm,`h útil = ${num(C.L12,2)} m`);
+      for(const zz of [zm]) o.push(L(X(Rext+0.4),Z(zz),X(xd1)+1.5*f,Z(zz),GREEN,0.12));
+      o.push(L(X(Rext+0.4),Z(zc),X(xd2)+1.5*f,Z(zc),GREEN,0.12));
+      o.push(L(X(Rext+0.4),Z(zag),X(xd3)+1.5*f,Z(zag),GREEN,0.12));
+      // niveles a la izquierda
+      const xm=X(-out)-14*f;
+      const lev=[[0,"±0.00 coronación"],[zag,`${num(zag,2)} nivel de agua (N.A.)`],[C.zcanal,`${num(C.zcanal,2)} fondo del canal`],[zm,`${num(zm,2)} fondo en el muro`],[zc,`${num(zc,3)} fondo en el centro`]];
+      lev.forEach(([z,txt])=>{ const y=Z(z); o.push(T(xm-7*f,y+0.8*f,txt,2.0,{anchor:"end"}), `<polygon points="${q(xm-2.2*f)},${q(y-2.4*f)} ${q(xm+2.2*f)},${q(y-2.4*f)} ${q(xm)},${q(y)}" fill="none" stroke="${GREEN}" stroke-width="${q(0.2*f)}"/>`, L(xm-3*f,y,xm+5*f,y,GREEN,0.2)); });
+      // nombres de partes con línea
+      const lab=(txt,ax,az,dx,dy,anchor)=>{ const axp=X(ax), ayp=Z(az), lx=axp+dx*f, ly=ayp+dy*f; o.push(L(axp,ayp,lx,ly,GREEN,0.15), `<circle cx="${q(axp)}" cy="${q(ayp)}" r="${q(0.55*f)}" fill="none" stroke="${GREEN}" stroke-width="${q(0.15*f)}"/>`, T(lx+(dx>=0?1:-1)*1.2*f,ly+0.7*f,txt,2.0,{anchor:dx>=0?"start":"end"})); };
+      const xl=frontal?xoff:xoff;   // (coordenadas relativas ya aplicadas con X())
+      if(frontal){
+        lab("Puente radial (tracción periférica)",Lp*0.55,hp*0.5+0.9,10,-9);
+        lab("Motorreductor",Rext-0.45,hp+0.2,26,-7);
+        lab(`Salida de fangos Ø ${num(S.dfan*1000,0)} mm`,t3,C.zfan,12,6);
+        lab(`Afluente Ø ${num(C.dafl*1000,0)} mm (hacia arqueta)`,-out*0.6,C.zafl-t1,6,9);
+      } else {
+        lab("Puente radial (vista frontal)",wp/2,hp+0.5,12,-8);
+        lab("Motorreductor",wp/2+0.05,0.2,24,-12);
+        lab(`Salida de agua Ø ${num(C.dsal*1000,0)} mm`,-(Rext+out)/2,zo+t2,-6,-8);
+        lab(`Salida de fangos Ø ${num(S.dfan*1000,0)} mm`,(Rext+out)/2,C.zfan+t3,-6,-8);
+        lab(`Afluente Ø ${num(C.dafl*1000,0)} mm`,t1,C.zafl,10,8);
+      }
+    };
+    panel(ptop1,eleTitle,false); panel(ptop2,secTitle,true);
+    return o.join("\n");
+  }
+  const dEl=escalaElev();
+  return [ lamina1(), elevSheet(2,"frontal",dEl), elevSheet(3,"lateral",dEl) ];
+}
+
 function writeDXF(P,F,L3,C3,info){
   const M=EXPORT_MB||getMB(), pap=PAPER[M.papel], tk=pap.tk, W=pap.w, HH=pap.h, {mk,nombre}=info;
+  if(SVG_MODE) return planoRef(P,info,M,pap);     // plano en PDF (formato A2)
   let hs=0x40; const H=()=>(hs++).toString(16).toUpperCase();
   const n=v=>(Math.abs(v)<1e-9?0:v).toFixed(5);
   const san=s=>String(s==null?"":s).replace(/[–—]/g,"-").replace(/[‘’]/g,"'").replace(/[“”]/g,'"')
@@ -1707,12 +1933,12 @@ async function saveBlob(bytes,name,type){
    DIÁLOGO DE DATOS (opcional) antes de exportar
    ========================================================= */
 const FIELD_LABELS={inst:"Institución / empresa",proyecto:"Proyecto",ubicacion:"Ubicación",codigo:"Código de lámina",dibujo:"Dibujó",reviso:"Revisó",
-  aprobo:"Aprobó",fecha:"Fecha",escuela:"Facultad / escuela",curso:"Curso",titulo:"Título del trabajo (opcional)",docente:"Docente",integrantes:"Integrantes (uno por línea)"};
+  aprobo:"Aprobó",fecha:"Fecha",escuela:"Facultad",ep:"Escuela profesional",curso:"Curso",titulo:"Título del trabajo (opcional)",docente:"Docente",integrantes:"Integrantes (uno por línea)"};
 const DLG_SETS={
   dxf:{title:"Datos del membrete (opcional)",note:"Se imprimen en el membrete de cada layout del plano (planta, frontal y perfil). Puedes dejar campos vacíos u omitirlos todos.",
        keys:["inst","proyecto","ubicacion","codigo","integrantes","dibujo","reviso","aprobo","fecha"],paper:true,ok:"Exportar AutoCAD"},
-  plano:{title:"Datos del membrete del plano en PDF (opcional)",note:"Se imprimen en el membrete de cada lámina (planta, frontal y perfil). Puedes dejar campos vacíos u omitirlos todos; elige el tamaño de hoja.",
-       keys:["inst","proyecto","ubicacion","codigo","integrantes","dibujo","reviso","aprobo","fecha"],paper:true,ok:"Generar plano PDF"},
+  plano:{title:"Datos del rótulo del plano en PDF (opcional)",note:"Se imprimen en el rótulo de cada lámina (planta general, elevación frontal con corte A-A y elevación lateral con corte B-B). Puedes dejar campos vacíos u omitirlos todos; elige el tamaño de hoja (A2 como el formato original).",
+       keys:["inst","escuela","ep","curso","docente","proyecto","integrantes","fecha"],paper:true,ok:"Generar plano PDF"},
   pdf:{title:"Datos de la carátula (opcional)",note:"Se usan en la carátula (primera página) de la memoria de cálculo en PDF. Puedes dejar campos vacíos u omitirlos todos.",
        keys:["inst","escuela","curso","titulo","integrantes","docente","ubicacion","fecha"],paper:false,ok:"Generar PDF"}
 };
